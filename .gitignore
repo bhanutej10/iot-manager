@@ -1,14 +1,6 @@
-# Python
 __pycache__/
 *.pyc
-*.pyo
 backend/venv/
 backend/data/
 *.db
-
-# Docker volumes
-.env
-
-# OS
 .DS_Store
-Thumbs.db
