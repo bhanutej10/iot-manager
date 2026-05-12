@@ -1,0 +1,11 @@
+flask>=3.0.0
+flask-socketio==5.3.6
+python-socketio==5.11.2
+eventlet==0.35.2
+paho-mqtt==2.1.0
+sqlalchemy==2.0.30
+pandas==2.2.2
+matplotlib==3.8.4
+plotly==5.22.0
+scapy==2.5.0
+gunicorn==22.0.0

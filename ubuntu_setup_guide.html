@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>IoT Sensor Manager — Ubuntu Setup Guide</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#070b14;--bg1:#0c1220;--bg2:#101828;--bg3:#162034;--bg4:#1c2942;
+  --b1:rgba(56,189,248,.07);--b2:rgba(56,189,248,.14);--b3:rgba(56,189,248,.26);
+  --tx1:#e2e8f0;--tx2:#94a3b8;--tx3:#475569;
+  --cyan:#38bdf8;--teal:#2dd4bf;--green:#34d399;--yellow:#fbbf24;
+  --orange:#fb923c;--red:#f87171;--purple:#a78bfa;--ubuntu:#E95420;
+  --font:'Segoe UI',Ubuntu,system-ui,sans-serif;
+  --mono:'Ubuntu Mono','Cascadia Code','Fira Code',Consolas,monospace;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg0);color:var(--tx1);font-family:var(--font);font-size:14px;line-height:1.7}
+.layout{display:flex;min-height:100vh}
+/* sidebar */
+.sidebar{width:262px;min-width:262px;background:var(--bg1);border-right:1px solid var(--b2);position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}
+.logo{padding:18px 16px 14px;border-bottom:1px solid var(--b1)}
+.logo-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.uball{width:36px;height:36px;background:var(--ubuntu);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 0 16px rgba(233,84,32,.3);flex-shrink:0}
+.logo-name{font-size:13px;font-weight:800}
+.logo-sub{font-size:9px;color:var(--tx3);font-family:var(--mono);letter-spacing:1px;text-transform:uppercase}
+.tnav{padding:10px 8px}
+.tg{font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;padding:10px 8px 4px;font-family:var(--mono)}
+.ta{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;color:var(--tx2);text-decoration:none;font-size:12px;font-weight:500;margin-bottom:2px;border:1px solid transparent;transition:all .12s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ta:hover{background:var(--bg3);color:var(--tx1)}
+.ta.active{background:rgba(56,189,248,.1);color:var(--cyan);border-color:rgba(56,189,248,.2)}
+.tn{font-family:var(--mono);font-size:10px;color:var(--tx3);width:20px;flex-shrink:0}
+.sb-chips{padding:10px 10px 16px;border-top:1px solid var(--b1)}
+.sc-lbl{font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:1.5px;font-family:var(--mono);margin-bottom:7px}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{font-size:9px;font-weight:700;padding:3px 8px;border-radius:10px;border:1px solid;font-family:var(--mono)}
+.cc{background:rgba(56,189,248,.1);border-color:var(--cyan);color:var(--cyan)}
+.cg{background:rgba(52,211,153,.1);border-color:var(--green);color:var(--green)}
+.cy{background:rgba(251,191,36,.1);border-color:var(--yellow);color:var(--yellow)}
+.cp{background:rgba(167,139,250,.1);border-color:var(--purple);color:var(--purple)}
+.cr{background:rgba(248,113,113,.1);border-color:var(--red);color:var(--red)}
+.co{background:rgba(251,146,60,.1);border-color:var(--orange);color:var(--orange)}
+.ct{background:rgba(45,212,191,.1);border-color:var(--teal);color:var(--teal)}
+.cu{background:rgba(233,84,32,.12);border-color:var(--ubuntu);color:var(--ubuntu)}
+/* main */
+.main{flex:1;min-width:0}
+/* hero */
+.hero{background:linear-gradient(160deg,#0c1220 0%,#101828 60%,#090e18 100%);border-bottom:1px solid var(--b2);padding:52px 60px 44px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(56,189,248,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(56,189,248,.025) 1px,transparent 1px);background-size:32px 32px}
+.hero-tag{display:inline-flex;align-items:center;gap:8px;background:rgba(233,84,32,.14);border:1px solid rgba(233,84,32,.38);color:var(--ubuntu);padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;font-family:var(--mono);margin-bottom:20px}
+.hero h1{font-size:38px;font-weight:900;line-height:1.15;margin-bottom:14px;background:linear-gradient(130deg,var(--cyan) 0%,var(--purple) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-desc{font-size:15px;color:var(--tx2);max-width:720px;line-height:1.85;margin-bottom:28px}
+.hero-chips{display:flex;flex-wrap:wrap;gap:7px}
+/* content */
+.body{padding:0 60px 80px}
+/* sensor grid */
+.sensor-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:14px 0}
+.scard{background:var(--bg2);border:1px solid var(--b2);border-radius:10px;padding:14px 12px;position:relative;overflow:hidden}
+.scard::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.scard.mand::after{background:linear-gradient(90deg,var(--cyan),var(--teal))}
+.scard.addl::after{background:linear-gradient(90deg,var(--purple),#f472b6)}
+.sicon{font-size:22px;margin-bottom:6px}
+.sname{font-size:12px;font-weight:800;margin-bottom:2px}
+.sid{font-size:10px;font-family:var(--mono);color:var(--cyan)}
+.sloc{font-size:10px;color:var(--tx3);margin-top:2px}
+.smetrics{margin-top:8px;font-size:10px;color:var(--tx2);line-height:1.7}
+.smetrics span{display:block;font-family:var(--mono)}
+.mbadge{font-size:8px;font-weight:800;letter-spacing:.8px;background:rgba(56,189,248,.15);color:var(--cyan);border:1px solid rgba(56,189,248,.3);border-radius:4px;padding:2px 6px;display:inline-block;margin-bottom:4px;font-family:var(--mono)}
+.abadge{font-size:8px;font-weight:800;letter-spacing:.8px;background:rgba(167,139,250,.15);color:var(--purple);border:1px solid rgba(167,139,250,.3);border-radius:4px;padding:2px 6px;display:inline-block;margin-bottom:4px;font-family:var(--mono)}
+/* sections */
+.section{padding-top:52px;margin-bottom:4px}
+.shdr{display:flex;align-items:center;gap:14px;margin-bottom:26px;padding-bottom:14px;border-bottom:1px solid var(--b2)}
+.snum{width:36px;height:36px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,var(--cyan),var(--purple));display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;color:#000}
+.stitle{font-size:23px;font-weight:800}
+.ssub{font-size:13px;color:var(--tx2);margin-top:2px}
+/* steps */
+.step{background:var(--bg2);border:1px solid var(--b2);border-radius:12px;margin-bottom:16px;overflow:hidden;position:relative}
+.step::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.step.blue::before{background:var(--cyan)}.step.green::before{background:var(--green)}.step.yellow::before{background:var(--yellow)}
+.step.red::before{background:var(--red)}.step.purple::before{background:var(--purple)}.step.teal::before{background:var(--teal)}
+.step.ubuntu::before{background:var(--ubuntu)}.step.orange::before{background:var(--orange)}
+.step-hdr{padding:14px 20px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--b1)}
+.step-icon{font-size:17px;flex-shrink:0}.step-title{font-size:14px;font-weight:700;flex:1}
+.step-badge{font-size:9px;font-weight:700;padding:2px 9px;border-radius:10px;font-family:var(--mono);flex-shrink:0}
+.step-body{padding:16px 20px}
+.step-body p{color:var(--tx2);font-size:13px;margin-bottom:10px;line-height:1.7}
+.step-body p:last-child{margin-bottom:0}
+/* code */
+.cb{background:var(--bg0);border:1px solid var(--b3);border-radius:8px;margin:10px 0;overflow:hidden}
+.ch{display:flex;align-items:center;justify-content:space-between;padding:7px 14px;background:var(--bg1);border-bottom:1px solid var(--b2)}
+.cl{font-size:10px;color:var(--tx3);font-family:var(--mono);letter-spacing:.8px;text-transform:uppercase}
+.cp-btn{font-size:10px;padding:3px 11px;border-radius:4px;border:1px solid var(--b3);background:var(--bg3);color:var(--tx2);cursor:pointer;font-family:var(--font);transition:all .14s}
+.cp-btn:hover{background:var(--bg4);color:var(--tx1);border-color:var(--cyan)}
+.cp-btn.ok{color:var(--green);border-color:var(--green)}
+pre{padding:14px 16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;color:#c9d1d9;overflow-x:auto;white-space:pre}
+.c{color:#475569;font-style:italic}.cmd{color:var(--cyan)}.ok{color:var(--green)}.er{color:var(--red)}.hd{color:var(--yellow)}
+/* verify block */
+.vb{background:var(--bg0);border:1px solid var(--b3);border-radius:8px;margin:10px 0;overflow:hidden}
+.vh{display:flex;align-items:center;gap:8px;padding:8px 14px;background:rgba(52,211,153,.06);border-bottom:1px solid rgba(52,211,153,.18)}
+.vh-icon{font-size:14px}.vh-text{font-size:11px;font-weight:700;color:var(--green);font-family:var(--mono)}
+.vbody{padding:12px 14px}
+.vrow{display:flex;gap:10px;margin-bottom:7px;font-size:12px}
+.vrow:last-child{margin-bottom:0}
+.vcmd{flex:1;background:var(--bg1);border-radius:5px;padding:6px 10px;font-family:var(--mono);font-size:11.5px;color:var(--cyan);border:1px solid var(--b2)}
+.vexp{flex:1;background:rgba(52,211,153,.05);border:1px solid rgba(52,211,153,.15);border-radius:5px;padding:6px 10px;font-family:var(--mono);font-size:11px;color:var(--green)}
+/* alert boxes */
+.alert{border-radius:7px;padding:12px 16px;margin:10px 0;border-left:3px solid;font-size:13px;line-height:1.7}
+.alert strong{display:block;font-weight:700;margin-bottom:3px}
+.alert.info{background:rgba(56,189,248,.06);border-color:var(--cyan);color:var(--tx2)}
+.alert.warn{background:rgba(251,191,36,.06);border-color:var(--yellow);color:var(--yellow)}
+.alert.ok{background:rgba(52,211,153,.06);border-color:var(--green);color:var(--green)}
+.alert.ubuntu{background:rgba(233,84,32,.06);border-color:var(--ubuntu);color:var(--ubuntu)}
+/* grids */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}
+.svc{background:var(--bg2);border:1px solid var(--b2);border-radius:10px;padding:14px 16px}
+.svc-name{font-family:var(--mono);font-size:13px;font-weight:700;margin-bottom:5px}
+.svc-img{font-size:10px;color:var(--tx3);font-family:var(--mono);margin-bottom:4px}
+.svc-desc{font-size:12px;color:var(--tx2);line-height:1.6}
+/* file tree */
+.ftree{background:var(--bg0);border:1px solid var(--b3);border-radius:8px;padding:16px 18px;font-family:var(--mono);font-size:12px;line-height:2;color:var(--tx2)}
+.ftree .dir{color:var(--cyan);font-weight:700}.ftree .file{color:var(--tx1)}.ftree .note{color:var(--tx3);font-size:11px}
+/* api table */
+.at{width:100%;border-collapse:collapse;font-size:12px;margin:12px 0}
+.at th{padding:8px 12px;text-align:left;background:var(--bg3);color:var(--tx3);font-size:9px;text-transform:uppercase;letter-spacing:1px;font-family:var(--mono);border-bottom:1px solid var(--b3)}
+.at td{padding:8px 12px;border-bottom:1px solid var(--b1);vertical-align:middle}
+.at tr:hover td{background:var(--bg3)}.at tr:last-child td{border-bottom:none}
+.at tr.gr td{background:var(--bg3);color:var(--tx3);font-size:10px;font-family:var(--mono);letter-spacing:1px;padding:5px 12px;font-weight:700}
+.M{font-family:var(--mono);font-weight:700;font-size:10px;padding:2px 8px;border-radius:4px;display:inline-block}
+.GET{background:rgba(52,211,153,.14);color:var(--green)}.POST{background:rgba(56,189,248,.14);color:var(--cyan)}
+.ep{font-family:var(--mono);color:var(--purple);font-size:11px}
+/* checklist */
+.cl-list{list-style:none}
+.cl-list li{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--b1);font-size:13px}
+.cl-list li:last-child{border-bottom:none}
+.ck{color:var(--green);font-size:14px;flex-shrink:0;margin-top:1px}
+code{background:var(--bg3);border:1px solid var(--b2);border-radius:4px;padding:1px 6px;font-family:var(--mono);font-size:11px;color:var(--cyan)}
+.divider{border:none;border-top:1px solid var(--b1);margin:32px 0}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--b3);border-radius:3px}
+@media(max-width:920px){.sidebar{display:none}.body{padding:0 20px 60px}.hero{padding:32px 20px 28px}.sensor-grid{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="logo">
+    <div class="logo-row"><div class="uball">🐧</div><div><div class="logo-name">IoT Sensor Manager</div><div class="logo-sub">Ubuntu Setup Guide</div></div></div>
+  </div>
+  <div class="tnav">
+    <div class="tg">Sensors</div>
+    <a class="ta" href="#sensors"><span class="tn">00</span>10-Sensor Network</a>
+    <div class="tg">Installation</div>
+    <a class="ta" href="#prereqs"><span class="tn">01</span>Ubuntu Prerequisites</a>
+    <a class="ta" href="#docker-install"><span class="tn">02</span>Install Docker</a>
+    <a class="ta" href="#python-install"><span class="tn">03</span>Install Python 3.11</a>
+    <a class="ta" href="#libs-install"><span class="tn">04</span>Install Python Libraries</a>
+    <a class="ta" href="#mqtt-install"><span class="tn">05</span>Install MQTT Tools</a>
+    <a class="ta" href="#verify-install"><span class="tn">06</span>Verify All Installs</a>
+    <div class="tg">Project</div>
+    <a class="ta" href="#structure"><span class="tn">07</span>Project Structure</a>
+    <a class="ta" href="#docker-run"><span class="tn">08</span>Run with Docker</a>
+    <a class="ta" href="#local-run"><span class="tn">09</span>Run Locally</a>
+    <a class="ta" href="#verify-run"><span class="tn">10</span>Verify Running</a>
+    <div class="tg">Reference</div>
+    <a class="ta" href="#protocols"><span class="tn">11</span>Protocols</a>
+    <a class="ta" href="#database"><span class="tn">12</span>Database</a>
+    <a class="ta" href="#api"><span class="tn">13</span>API Reference</a>
+    <a class="ta" href="#alerts"><span class="tn">14</span>Alert System</a>
+    <a class="ta" href="#trouble"><span class="tn">15</span>Troubleshooting</a>
+  </div>
+  <div class="sb-chips">
+    <div class="sc-lbl">Libraries</div>
+    <div class="chips">
+      <span class="chip cc">Flask</span><span class="chip cy">paho-mqtt</span>
+      <span class="chip cp">SQLAlchemy</span><span class="chip cg">Pandas</span>
+      <span class="chip cr">Matplotlib</span><span class="chip co">Plotly</span>
+      <span class="chip ct">Scapy</span><span class="chip cu">Docker</span>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-tag">🐧 Ubuntu 20.04 / 22.04 / 24.04 LTS</div>
+  <h1>IoT Sensor Manager<br>Ubuntu Setup Guide</h1>
+  <p class="hero-desc">Complete step-by-step guide for Ubuntu — installing every dependency with verification commands, running the full Docker Compose stack, and operating all 10 sensors across MQTT, HTTP/REST, and WebSocket protocols using 7 Python libraries.</p>
+  <div class="hero-chips">
+    <span class="chip cu">Ubuntu LTS</span><span class="chip cc">Flask + SocketIO</span>
+    <span class="chip cy">paho-mqtt + Mosquitto</span><span class="chip cp">SQLAlchemy + SQLite</span>
+    <span class="chip cg">Pandas Analytics</span><span class="chip cr">Matplotlib PNG</span>
+    <span class="chip co">Plotly Interactive</span><span class="chip ct">Scapy Packets</span>
+    <span class="chip cu">Docker Compose</span>
+  </div>
+</div>
+
+<div class="body">
+
+<!-- ─── SECTION 0: 10-SENSOR NETWORK ──────────────────────── -->
+<div class="section" id="sensors">
+  <div class="shdr"><div class="snum">0</div><div><div class="stitle">The 10-Sensor IoT Network</div><div class="ssub">4 mandatory sensors + 6 additional environmental sensors</div></div></div>
+
+  <div class="sensor-grid">
+    <div class="scard mand"><div class="mbadge">MANDATORY</div><div class="sicon">🌡️</div><div class="sname">Temperature</div><div class="sid">dev-001</div><div class="sloc">📍 Server Room</div><div class="smetrics"><span>temperature_celsius</span><span>temperature_fahrenheit</span><span>heat_index_celsius</span><span>dew_point_celsius</span><span>rate_of_change_c/min</span></div></div>
+    <div class="scard mand"><div class="mbadge">MANDATORY</div><div class="sicon">🔴</div><div class="sname">Pressure</div><div class="sid">dev-002</div><div class="sloc">📍 Boiler Room</div><div class="smetrics"><span>pressure_hpa</span><span>pressure_psi</span><span>pressure_bar</span><span>altitude_m</span><span>pressure_trend_hpa/hr</span></div></div>
+    <div class="scard mand"><div class="mbadge">MANDATORY</div><div class="sicon">💧</div><div class="sname">Humidity</div><div class="sid">dev-003</div><div class="sloc">📍 Greenhouse</div><div class="smetrics"><span>relative_humidity_%</span><span>absolute_humidity_g/m³</span><span>specific_humidity</span><span>vapor_pressure_kpa</span><span>comfort_index</span></div></div>
+    <div class="scard mand"><div class="mbadge">MANDATORY</div><div class="sicon">🌱</div><div class="sname">Moisture</div><div class="sid">dev-004</div><div class="sloc">📍 Agri Field</div><div class="smetrics"><span>soil_moisture_%</span><span>moisture_raw_adc</span><span>water_retention_%</span><span>field_capacity_%</span><span>wilting_point_%</span></div></div>
+    <div style="display:none"></div>
+    <div class="scard addl"><div class="abadge">ADDITIONAL</div><div class="sicon">💨</div><div class="sname">Wind Speed</div><div class="sid">dev-005</div><div class="sloc">📍 Rooftop</div><div class="smetrics"><span>wind_speed_kmh</span><span>wind_speed_ms</span><span>wind_direction_deg</span><span>gust_speed_kmh</span><span>beaufort_scale</span></div></div>
+    <div class="scard addl"><div class="abadge">ADDITIONAL</div><div class="sicon">🌧️</div><div class="sname">Rainfall</div><div class="sid">dev-006</div><div class="sloc">📍 Weather Station</div><div class="smetrics"><span>rainfall_mm</span><span>rainfall_rate_mm/hr</span><span>daily_total_mm</span><span>weekly_total_mm</span><span>intensity_level</span></div></div>
+    <div class="scard addl"><div class="abadge">ADDITIONAL</div><div class="sicon">☀️</div><div class="sname">Light Intensity</div><div class="sid">dev-007</div><div class="sloc">📍 Solar Farm</div><div class="smetrics"><span>light_lux</span><span>uv_index</span><span>par_umol_m²/s</span><span>solar_radiation_w/m²</span><span>daylight_hours</span></div></div>
+    <div class="scard addl"><div class="abadge">ADDITIONAL</div><div class="sicon">💨</div><div class="sname">CO₂</div><div class="sid">dev-008</div><div class="sloc">📍 Factory Floor</div><div class="smetrics"><span>co2_ppm</span><span>co_ppm</span><span>voc_ppb</span><span>pm25_ug/m³</span><span>air_quality_index</span></div></div>
+    <div class="scard addl"><div class="abadge">ADDITIONAL</div><div class="sicon">🔊</div><div class="sname">Noise Level</div><div class="sid">dev-009</div><div class="sloc">📍 Industrial Zone</div><div class="smetrics"><span>noise_db</span><span>peak_db</span><span>noise_frequency_hz</span><span>leq_db</span><span>noise_class</span></div></div>
+    <div class="scard addl"><div class="abadge">ADDITIONAL</div><div class="sicon">🧪</div><div class="sname">Soil pH</div><div class="sid">dev-010</div><div class="sloc">📍 Greenhouse B</div><div class="smetrics"><span>soil_ph</span><span>soil_temperature_°C</span><span>electrical_conductivity</span><span>organic_matter_%</span><span>fertility_index</span></div></div>
+  </div>
+
+  <div class="alert info"><strong>Shell script — simulate_sensors.sh</strong>Every 3 seconds the bash script generates random values for all 10 sensors using <code>rand_float</code> and <code>rand_int</code>. Values are published to MQTT topic <code>iot/sensors/{type}/{device_id}/telemetry</code> and written to <code>/tmp/iot_sensor_data.json</code> for the backend.</div>
+</div>
+
+<!-- ─── SECTION 1: PREREQUISITES ──────────────────────────── -->
+<div class="section" id="prereqs">
+  <div class="shdr"><div class="snum">1</div><div><div class="stitle">Ubuntu Prerequisites</div><div class="ssub">System packages required before anything else</div></div></div>
+
+  <div class="step ubuntu">
+    <div class="step-hdr"><span class="step-icon">🔄</span><span class="step-title">Step 1.1 — Update Ubuntu and install base tools</span><span class="step-badge cu">Run first</span></div>
+    <div class="step-body">
+      <div class="cb"><div class="ch"><span class="cl">bash</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+      <pre><span class="cmd">sudo apt update && sudo apt upgrade -y</span>
+
+<span class="cmd">sudo apt install -y \
+    curl wget git \
+    build-essential \
+    software-properties-common \
+    apt-transport-https \
+    ca-certificates gnupg \
+    lsb-release unzip jq</span></pre></div>
+      <div class="vb"><div class="vh"><span class="vh-icon">✅</span><span class="vh-text">VERIFY INSTALLATION</span></div><div class="vbody">
+        <div class="vrow"><div class="vcmd">curl --version</div><div class="vexp">curl 7.x.x or 8.x.x</div></div>
+        <div class="vrow"><div class="vcmd">git --version</div><div class="vexp">git version 2.x.x</div></div>
+        <div class="vrow"><div class="vcmd">lsb_release -a</div><div class="vexp">Ubuntu 20.04 / 22.04 / 24.04</div></div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="step teal">
+    <div class="step-hdr"><span class="step-icon">🔬</span><span class="step-title">Step 1.2 — Install libpcap (Scapy dependency)</span><span class="step-badge ct">Scapy dep</span></div>
+    <div class="step-body">
+      <p>Scapy needs <code>libpcap-dev</code> to compile its C extensions. Without this, <code>pip install scapy</code> fails on Ubuntu.</p>
+      <div class="cb"><div class="ch"><span class="cl">bash</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+      <pre><span class="cmd">sudo apt install -y libpcap-dev libffi-dev libssl-dev gcc g++</span></pre></div>
+      <div class="vb"><div class="vh"><span class="vh-icon">✅</span><span class="vh-text">VERIFY</span></div><div class="vbody">
+        <div class="vrow"><div class="vcmd">dpkg -l | grep libpcap-dev</div><div class="vexp">ii  libpcap-dev  1.x.x ...</div></div>
+        <div class="vrow"><div class="vcmd">ldconfig -p | grep pcap</div><div class="vexp">libpcap.so.x.x ...</div></div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="step purple">
+    <div class="step-hdr"><span class="step-icon">📊</span><span class="step-title">Step 1.3 — Install Matplotlib system dependencies</span><span class="step-badge cr">Matplotlib dep</span></div>
+    <div class="step-body">
+      <p>Matplotlib needs FreeType and image libraries for rendering charts. We use the headless <code>Agg</code> backend so no display is required on Ubuntu Server.</p>
+      <div class="cb"><div class="ch"><span class="cl">bash</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+      <pre><span class="cmd">sudo apt install -y python3-tk libfreetype6-dev pkg-config libjpeg-dev zlib1g-dev libpng-dev</span></pre></div>
+      <div class="vb"><div class="vh"><span class="vh-icon">✅</span><span class="vh-text">VERIFY</span></div><div class="vbody">
+        <div class="vrow"><div class="vcmd">dpkg -l | grep libfreetype6-dev</div><div class="vexp">ii  libfreetype6-dev  2.x.x ...</div></div>
+        <div class="vrow"><div class="vcmd">pkg-config --modversion freetype2</div><div class="vexp">2.x.x (version number)</div></div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SECTION 2: INSTALL DOCKER ─────────────────────────── -->
+<div class="section" id="docker-install">
+  <div class="shdr"><div class="snum">2</div><div><div class="stitle">Install Docker on Ubuntu</div><div class="ssub">Official Docker Engine — not snap, not ubuntu default</div></div></div>
+
+  <div class="alert ubuntu"><strong>Use Docker's official apt repository</strong>Ubuntu's default <code>apt install docker.io</code> installs an older version. Follow these exact steps from Docker's official repository to get Docker Engine with Compose v2 support.</div>
+
+  <div class="step ubuntu">
+    <div class="step-hdr"><span class="step-icon">🔑</span><span class="step-title">Step 2.1 — Remove old Docker, add GPG key and repository</span><span class="step-badge cu">Official source</span></div>
+    <div class="step-body">
+      <div class="cb"><div class="ch"><span class="cl">bash — copy and run all at once</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+      <pre><span class="c"># Remove old Docker installations</span>
+<span class="cmd">sudo apt remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true</span>
+
+<span class="c"># Add Docker's official GPG key</span>
+<span class="cmd">sudo install -m 0755 -d /etc/apt/keyrings</span>
+<span class="cmd">curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+    sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg</span>
+<span class="cmd">sudo chmod a+r /etc/apt/keyrings/docker.gpg</span>
+
+<span class="c"># Add Docker stable repository</span>
+<span class="cmd">echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+  https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null</span>
+
+<span class="c"># Install Docker Engine + Compose v2 plugin</span>
+<span class="cmd">sudo apt update</span>
+<span class="cmd">sudo apt install -y \
+    docker-ce docker-ce-cli containerd.io \
+    docker-buildx-plugin docker-compose-plugin</span></pre></div>
+    </div>
+  </div>
+
+  <div class="step blue">
+    <div class="step-hdr"><span class="step-icon">👤</span><span class="step-title">Step 2.2 — Add your user to docker group</span><span class="step-badge cc">Critical Ubuntu step</span></div>
+    <div class="step-body">
+      <p>By default on Ubuntu, only root can run Docker. Add yourself to the <code>docker</code> group so you don't need <code>sudo</code> for every command.</p>
+      <div class="cb"><div class="ch"><span class="cl">bash</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+      <pre><span class="cmd">sudo usermod -aG docker $USER</span>
+<span class="cmd">newgrp docker</span>          <span class="c"># apply without logout — OR log out and back in</span>
+<span class="cmd">sudo systemctl enable docker</span>
+<span class="cmd">sudo systemctl start docker</span></pre></div>
+      <div class="vb"><div class="vh"><span class="vh-icon">✅</span><span class="vh-text">VERIFY DOCKER INSTALLATION — all 6 checks must pass</span></div><div class="vbody">
+        <div class="vrow"><div class="vcmd">docker --version</div><div class="vexp">Docker version 25.x.x, build ...</div></div>
+        <div class="vrow"><div class="vcmd">docker compose version</div><div class="vexp">Docker Compose version v2.x.x</div></div>
+        <div class="vrow"><div class="vcmd">sudo systemctl status docker</div><div class="vexp">Active: active (running)</div></div>
+        <div class="vrow"><div class="vcmd">docker run hello-world</div><div class="vexp">Hello from Docker! ...</div></div>
+        <div class="vrow"><div class="vcmd">docker ps</div><div class="vexp">CONTAINER ID IMAGE ... (no sudo needed)</div></div>
+        <div class="vrow"><div class="vcmd">groups $USER | grep docker</div><div class="vexp">... docker ... (group present)</div></div>
+      </div></div>
+      <div class="alert warn"><strong>If docker ps gives permission denied</strong>Log out of your Ubuntu session completely and log back in. <code>newgrp docker</code> applies for the current terminal only.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SECTION 3: PYTHON ──────────────────────────────────── -->
+<div class="section" id="python-install">
+  <div class="shdr"><div class="snum">3</div><div><div class="stitle">Install Python 3.11</div><div class="ssub">Required for local run — Docker handles this automatically</div></div></div>
+
+  <div class="step blue">
+    <div class="step-hdr"><span class="step-icon">🐍</span><span class="step-title">Step 3.1 — Install Python 3.11 via deadsnakes PPA</span><span class="step-badge cc">Python 3.11+</span></div>
+    <div class="step-body">
+      <p>Ubuntu 20.04 ships with Python 3.8. Ubuntu 22.04 ships with 3.10. We add the deadsnakes PPA to get Python 3.11.</p>
+      <div class="cb"><div class="ch"><span class="cl">bash — Ubuntu 20.04 / 22.04</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+      <pre><span class="cmd">sudo add-apt-repository ppa:deadsnakes/ppa -y</span>
+<span class="cmd">sudo apt update</span>
+<span class="cmd">sudo apt install -y python3.11 python3.11-venv python3.11-dev python3-pip</span>
+<span class="c"># Make python3.11 the default python3 (optional)</span>
+<span class="cmd">sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1</span></pre></div>
+      <div class="cb"><div class="ch"><span class="cl">bash — Ubuntu 24.04 (Python 3.12 ships by default)</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+      <pre><span class="cmd">sudo apt install -y python3 python3-venv python3-dev python3-pip</span>
+<span class="c"># Use python3 instead of python3.11 in all commands below</span></pre></div>
+      <div class="vb"><div class="vh"><span class="vh-icon">✅</span><span class="vh-text">VERIFY PYTHON</span></div><div class="vbody">
+        <div class="vrow"><div class="vcmd">python3.11 --version</div><div class="vexp">Python 3.11.x</div></div>
+        <div class="vrow"><div class="vcmd">python3.11 -m venv --help | head -1</div><div class="vexp">usage: venv ...</div></div>
+        <div class="vrow"><div class="vcmd">pip3 --version</div><div class="vexp">pip 23.x.x from .../python3...</div></div>
+        <div class="vrow"><div class="vcmd">which python3.11</div><div class="vexp">/usr/bin/python3.11</div></div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SECTION 4: PYTHON LIBRARIES ───────────────────────── -->
+<div class="section" id="libs-install">
+  <div class="shdr"><div class="snum">4</div><div><div class="stitle">Install All 7 Python Libraries</div><div class="ssub">Flask, paho-mqtt, SQLAlchemy, Pandas, Matplotlib, Plotly, Scapy</div></div></div>
+
+  <div class="step purple">
+    <div class="step-hdr"><span class="step-icon">📦</span><span class="step-title">Step 4.1 — Create virtual environment and install all libraries</span><span class="step-badge cp">All 7 libraries</span></div>
+    <div class="step-body">
+      <div class="cb"><div class="ch"><span class="cl">bash — from ~/iot-manager/backend/</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+      <pre><span class="cmd">cd ~/iot-manager/backend</span>
+<span class="cmd">python3.11 -m venv venv</span>
+<span class="cmd">source venv/bin/activate</span>          <span class="c"># (venv) appears in your prompt</span>
+<span class="cmd">pip install --upgrade pip</span>
+<span class="cmd">pip install -r requirements.txt</span>   <span class="c"># installs all 7 required libraries</span></pre></div>
+      <div class="alert info"><strong>requirements.txt contains:</strong> flask==3.0.3 · flask-socketio==5.3.6 · paho-mqtt==2.1.0 · sqlalchemy==2.0.30 · pandas==2.2.2 · matplotlib==3.8.4 · plotly==5.22.0 · scapy==2.5.0 · gunicorn==22.0.0</div>
+      <div class="vb"><div class="vh"><span class="vh-icon">✅</span><span class="vh-text">VERIFY ALL 7 LIBRARIES — single command check</span></div><div class="vbody">
+        <div class="vrow" style="display:block">
+          <div class="vcmd" style="margin-bottom:6px">python3 -c "
+import flask; print(f'✅ Flask          {flask.__version__}')
+import flask_socketio; print(f'✅ Flask-SocketIO  {flask_socketio.__version__}')
+import paho.mqtt.client as m; print(f'✅ paho-mqtt       {m.__version__}')
+import sqlalchemy; print(f'✅ SQLAlchemy      {sqlalchemy.__version__}')
+import pandas as pd; print(f'✅ Pandas          {pd.__version__}')
+import matplotlib; print(f'✅ Matplotlib      {matplotlib.__version__}')
+import plotly; print(f'✅ Plotly          {plotly.__version__}')
+from scapy.all import IP; print(f'✅ Scapy           available')
+print('ALL 7 LIBRARIES OK')
+"</div>
+          <div class="vexp">✅ Flask          3.0.3<br>✅ Flask-SocketIO  5.3.6<br>✅ paho-mqtt       2.1.0<br>✅ SQLAlchemy      2.0.30<br>✅ Pandas          2.2.2<br>✅ Matplotlib      3.8.4<br>✅ Plotly          5.22.0<br>✅ Scapy           available<br>ALL 7 LIBRARIES OK</div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="step green">
+    <div class="step-hdr"><span class="step-icon">🔍</span><span class="step-title">Step 4.2 — Verify each library individually with functional tests</span><span class="step-badge cg">Detailed checks</span></div>
+    <div class="step-body">
+      <div class="cb"><div class="ch"><span class="cl">bash — individual library verification</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+      <pre><span class="c"># ── 1. Flask ────────────────────────────────────────────</span>
+<span class="cmd">python3 -c "import flask; print('Flask', flask.__version__)"</span>
+<span class="ok"># Flask 3.0.3</span>
+<span class="cmd">python3 -c "from flask import Flask; app=Flask(__name__); print('App:', app.name)"</span>
+<span class="ok"># App: __main__</span>
+
+<span class="c"># ── 2. paho-mqtt ────────────────────────────────────────</span>
+<span class="cmd">python3 -c "import paho.mqtt.client as m; c=m.Client(m.CallbackAPIVersion.VERSION2); print('paho-mqtt client created:', type(c).__name__)"</span>
+<span class="ok"># paho-mqtt client created: Client</span>
+
+<span class="c"># ── 3. SQLAlchemy ────────────────────────────────────────</span>
+<span class="cmd">python3 -c "
+import sqlalchemy
+e = sqlalchemy.create_engine('sqlite:///tmp_test.db')
+print('SQLAlchemy', sqlalchemy.__version__, '| engine:', e)
+import os; os.remove('tmp_test.db')
+"</span>
+<span class="ok"># SQLAlchemy 2.0.30 | engine: Engine(sqlite:///tmp_test.db)</span>
+
+<span class="c"># ── 4. Pandas ────────────────────────────────────────────</span>
+<span class="cmd">python3 -c "
+import pandas as pd
+df = pd.DataFrame({'temp':[22.1,35.8,67.4],'humidity':[55,92,31]})
+print('Pandas', pd.__version__)
+print(df.describe().round(2).to_string())
+"</span>
+<span class="ok"># Pandas 2.2.2
+#          temp  humidity
+# count    3.00      3.00
+# mean    41.77     59.33 ...</span>
+
+<span class="c"># ── 5. Matplotlib ────────────────────────────────────────</span>
+<span class="cmd">python3 -c "
+import matplotlib; matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+fig, ax = plt.subplots()
+ax.plot([1,2,3],[22.1,35.8,67.4], label='temperature')
+ax.plot([1,2,3],[55,92,31],       label='humidity')
+ax.legend(); ax.set_title('Sensor Data')
+fig.savefig('/tmp/sensor_chart.png', dpi=100, bbox_inches='tight')
+plt.close(fig)
+print('Matplotlib', matplotlib.__version__, '— PNG saved')
+import os; print('File size:', os.path.getsize('/tmp/sensor_chart.png'), 'bytes')
+"</span>
+<span class="ok"># Matplotlib 3.8.4 — PNG saved
+# File size: 32847 bytes</span>
+<span class="cmd">xdg-open /tmp/sensor_chart.png</span>   <span class="c"># view the chart</span>
+
+<span class="c"># ── 6. Plotly ────────────────────────────────────────────</span>
+<span class="cmd">python3 -c "
+import plotly.graph_objects as go, json
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=[1,2,3], y=[22.1,35.8,67.4], name='temperature'))
+fig.add_trace(go.Scatter(x=[1,2,3], y=[55,92,31],       name='humidity'))
+d = json.loads(fig.to_json())
+print('Plotly', __import__('plotly').__version__, '| traces:', len(d['data']))
+"</span>
+<span class="ok"># Plotly 5.22.0 | traces: 2</span>
+
+<span class="c"># ── 7. Scapy ─────────────────────────────────────────────</span>
+<span class="cmd">python3 -c "
+from scapy.all import IP, TCP, Raw
+payload = b'{\"sensor\":\"temperature\",\"value\":28.5}'
+pkt = IP(src='192.168.1.101', dst='192.168.1.200') / TCP(sport=54321, dport=1883, flags='PA') / Raw(load=payload)
+print('Scapy: packet crafted successfully')
+print('  Layers:', [l.name for l in pkt.layers()])
+print('  Total length:', len(pkt), 'bytes')
+print('  Summary:', pkt.summary())
+"</span>
+<span class="ok"># Scapy: packet crafted successfully
+#   Layers: ['IP', 'TCP', 'Raw']
+#   Total length: 79 bytes
+#   Summary: IP / TCP 192.168.1.101:54321 > 192.168.1.200:1883 PA / Raw</span></pre></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SECTION 5: MQTT TOOLS ──────────────────────────────── -->
+<div class="section" id="mqtt-install">
+  <div class="shdr"><div class="snum">5</div><div><div class="stitle">Install MQTT Tools</div><div class="ssub">CLI tools for testing — broker runs in Docker</div></div></div>
+
+  <div class="step yellow">
+    <div class="step-hdr"><span class="step-icon">🦟</span><span class="step-title">Step 5.1 — Install mosquitto-clients (pub/sub CLI tools)</span><span class="step-badge cy">Testing tools</span></div>
+    <div class="step-body">
+      <p>This installs only the <code>mosquitto_pub</code> and <code>mosquitto_sub</code> CLI tools for testing. The actual MQTT broker runs inside Docker.</p>
+      <div class="cb"><div class="ch"><span class="cl">bash</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+      <pre><span class="cmd">sudo apt install -y mosquitto-clients</span></pre></div>
+      <div class="vb"><div class="vh"><span class="vh-icon">✅</span><span class="vh-text">VERIFY MQTT TOOLS</span></div><div class="vbody">
+        <div class="vrow"><div class="vcmd">mosquitto_pub --version</div><div class="vexp">mosquitto_pub version 2.x.x ...</div></div>
+        <div class="vrow"><div class="vcmd">mosquitto_sub --version</div><div class="vexp">mosquitto_sub version 2.x.x ...</div></div>
+        <div class="vrow"><div class="vcmd">which mosquitto_pub</div><div class="vexp">/usr/bin/mosquitto_pub</div></div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="step orange">
+    <div class="step-hdr"><span class="step-icon">🦟</span><span class="step-title">Step 5.2 — Install native Mosquitto broker (local run only, skip for Docker)</span><span class="step-badge co">Local run only</span></div>
+    <div class="step-body">
+      <div class="cb"><div class="ch"><span class="cl">bash — skip if using Docker Compose</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+      <pre><span class="cmd">sudo apt install -y mosquitto</span>
+<span class="cmd">sudo tee /etc/mosquitto/conf.d/local.conf << 'EOF'
+listener 1883
+allow_anonymous true
+listener 9001
+protocol websockets
+allow_anonymous true
+EOF</span>
+<span class="cmd">sudo systemctl start mosquitto && sudo systemctl enable mosquitto</span></pre></div>
+      <div class="vb"><div class="vh"><span class="vh-icon">✅</span><span class="vh-text">VERIFY NATIVE BROKER</span></div><div class="vbody">
+        <div class="vrow"><div class="vcmd">sudo systemctl status mosquitto</div><div class="vexp">Active: active (running)</div></div>
+        <div class="vrow"><div class="vcmd">mosquitto_pub -h localhost -t test -m hello && echo "OK"</div><div class="vexp">OK  (no error = broker is up)</div></div>
+        <div class="vrow"><div class="vcmd">ss -tlnp | grep 1883</div><div class="vexp">LISTEN ... :1883</div></div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SECTION 6: FULL VERIFICATION ──────────────────────── -->
+<div class="section" id="verify-install">
+  <div class="shdr"><div class="snum">6</div><div><div class="stitle">Complete Installation Verification</div><div class="ssub">Run this script before starting — confirms everything is ready</div></div></div>
+
+  <div class="step green">
+    <div class="step-hdr"><span class="step-icon">🎯</span><span class="step-title">Full system check script — run all verifications at once</span><span class="step-badge cg">Run before starting</span></div>
+    <div class="step-body">
+      <div class="cb"><div class="ch"><span class="cl">bash — complete verification script</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+      <pre><span class="cmd">python3 << 'VERIFY'
+import subprocess, sys
+
+def check(name, cmd, expect=""):
+    try:
+        r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
+        out = r.stdout + r.stderr
+        ok = r.returncode == 0 and (expect in out if expect else True)
+        print(f"{'✅' if ok else '❌'} {name:35} {'OK' if ok else 'FAILED'}")
+        if not ok: print(f"   ↳ got: {out[:80].strip()}")
+    except Exception as e:
+        print(f"❌ {name:35} ERROR: {e}")
+
+print("=" * 60)
+print("  IoT Sensor Manager — Pre-flight Check")
+print("=" * 60)
+
+print("\n── SYSTEM TOOLS ──")
+check("curl installed",           "curl --version",            "curl")
+check("git installed",            "git --version",             "git version")
+check("libpcap-dev (Scapy)",      "dpkg -l libpcap-dev",       "ii")
+check("libfreetype6 (Matplotlib)","dpkg -l libfreetype6-dev",  "ii")
+check("mosquitto_pub CLI",        "mosquitto_pub --version",   "mosquitto_pub")
+check("mosquitto_sub CLI",        "mosquitto_sub --version",   "mosquitto_sub")
+
+print("\n── DOCKER ──")
+check("Docker Engine installed",  "docker --version",          "Docker version")
+check("Docker Compose v2",        "docker compose version",    "Compose version")
+check("Docker service running",   "systemctl is-active docker","active")
+check("Docker group (no sudo)",   "docker ps",                 "CONTAINER")
+
+print("\n── PYTHON ──")
+check("Python 3.11+",             "python3.11 --version",      "Python 3.11")
+check("pip3 installed",           "pip3 --version",            "pip")
+
+print("\n── PYTHON LIBRARIES ──")
+libs = [
+    ("Flask 3.0.x",           "import flask; print(flask.__version__)",              "3.0"),
+    ("Flask-SocketIO 5.x",    "import flask_socketio; print(flask_socketio.__version__)","5."),
+    ("paho-mqtt 2.x",         "import paho.mqtt.client; print('ok')",                "ok"),
+    ("SQLAlchemy 2.x",        "import sqlalchemy; print(sqlalchemy.__version__)",    "2.0"),
+    ("Pandas 2.x",            "import pandas; print(pandas.__version__)",            "2."),
+    ("Matplotlib 3.x",        "import matplotlib; print(matplotlib.__version__)",    "3."),
+    ("Plotly 5.x",            "import plotly; print(plotly.__version__)",            "5."),
+    ("Scapy (IP/TCP craft)",  "from scapy.all import IP,TCP; IP()/TCP(); print('ok')","ok"),
+]
+for name, code, exp in libs:
+    check(name, f'python3 -c "{code}"', exp)
+
+print("\n── BASH / SHELL ──")
+check("bash shell",               "bash --version",            "bash")
+check("awk available",            "awk --version",             "awk")
+check("bc available",             "bc --version 2>&1 | head -1","bc")
+
+print("\n" + "=" * 60)
+print("  Fix any ❌ items before running docker compose up")
+print("=" * 60)
+VERIFY</span></pre></div>
+      <div class="vb"><div class="vh"><span class="vh-icon">✅</span><span class="vh-text">EXPECTED OUTPUT — all green</span></div><div class="vbody">
+        <div style="font-family:var(--mono);font-size:11px;color:var(--green);line-height:1.9;padding:4px">
+============================================================<br>
+&nbsp;&nbsp;IoT Sensor Manager — Pre-flight Check<br>
+============================================================<br>
+<br>── SYSTEM TOOLS ──<br>
+✅ curl installed                   OK<br>
+✅ git installed                    OK<br>
+✅ libpcap-dev (Scapy)              OK<br>
+✅ libfreetype6 (Matplotlib)        OK<br>
+✅ mosquitto_pub CLI                OK<br>
+✅ mosquitto_sub CLI                OK<br>
+<br>── DOCKER ──<br>
+✅ Docker Engine installed          OK<br>
+✅ Docker Compose v2                OK<br>
+✅ Docker service running           OK<br>
+✅ Docker group (no sudo)           OK<br>
+<br>── PYTHON ──<br>
+✅ Python 3.11+                     OK<br>
+✅ pip3 installed                   OK<br>
+<br>── PYTHON LIBRARIES ──<br>
+✅ Flask 3.0.x                      OK<br>
+✅ Flask-SocketIO 5.x               OK<br>
+✅ paho-mqtt 2.x                    OK<br>
+✅ SQLAlchemy 2.x                   OK<br>
+✅ Pandas 2.x                       OK<br>
+✅ Matplotlib 3.x                   OK<br>
+✅ Plotly 5.x                       OK<br>
+✅ Scapy (IP/TCP craft)             OK<br>
+<br>── BASH / SHELL ──<br>
+✅ bash shell                       OK<br>
+✅ awk available                    OK<br>
+✅ bc available                     OK<br>
+<br>============================================================<br>
+&nbsp;&nbsp;Fix any ❌ items before running docker compose up<br>
+============================================================
+        </div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SECTION 7: PROJECT STRUCTURE ──────────────────────── -->
+<div class="section" id="structure">
+  <div class="shdr"><div class="snum">7</div><div><div class="stitle">Project Structure</div><div class="ssub">Create directories and place all provided files</div></div></div>
+
+  <div class="step blue">
+    <div class="step-hdr"><span class="step-icon">📁</span><span class="step-title">Step 7.1 — Create directory structure and set permissions</span></div>
+    <div class="step-body">
+      <div class="cb"><div class="ch"><span class="cl">bash</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+      <pre><span class="cmd">mkdir -p ~/iot-manager/{backend/data/charts,scripts,docker,frontend,docs}</span>
+<span class="cmd">cd ~/iot-manager</span>
+
+<span class="c"># After placing all files — make shell script executable (REQUIRED)</span>
+<span class="cmd">chmod +x ~/iot-manager/scripts/simulate_sensors.sh</span>
+
+<span class="c"># Verify executable permission</span>
+<span class="cmd">ls -la ~/iot-manager/scripts/simulate_sensors.sh</span>
+<span class="ok"># -rwxr-xr-x 1 user user ... simulate_sensors.sh</span>
+
+<span class="c"># Confirm all files placed</span>
+<span class="cmd">find ~/iot-manager -type f | sort</span></pre></div>
+      <div class="ftree">
+<span class="dir">~/iot-manager/</span>
+├── <span class="file">docker-compose.yml</span>    <span class="note">← 4-service Docker stack</span>
+├── <span class="dir">backend/</span>
+│   ├── <span class="file">app.py</span>            <span class="note">← Flask + all 7 libraries (1412 lines)</span>
+│   ├── <span class="file">requirements.txt</span>  <span class="note">← pinned Python dependencies</span>
+│   ├── <span class="file">Dockerfile</span>        <span class="note">← Python 3.11-slim + libpcap</span>
+│   └── <span class="file">mqtt_subscriber.py</span><span class="note">← CLI MQTT terminal monitor</span>
+├── <span class="dir">scripts/</span>
+│   └── <span class="file">simulate_sensors.sh</span><span class="note">← bash sensor simulator (10 sensors)</span>
+├── <span class="dir">docker/</span>
+│   ├── <span class="file">mosquitto.conf</span>    <span class="note">← MQTT broker config</span>
+│   └── <span class="file">nginx.conf</span>        <span class="note">← reverse proxy config</span>
+└── <span class="dir">frontend/</span>
+    └── <span class="file">index.html</span>        <span class="note">← dashboard UI</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="svc"><div class="svc-name" style="color:var(--yellow)">🦟 mosquitto</div><div class="svc-img">eclipse-mosquitto:2.0</div><div class="svc-desc">MQTT broker. Port 1883 (TCP) + 9001 (WebSocket). All 10 sensors publish here.</div></div>
+    <div class="svc"><div class="svc-name" style="color:var(--cyan)">🐍 backend</div><div class="svc-img">python:3.11-slim (built from Dockerfile)</div><div class="svc-desc">Flask REST API + Socket.IO WebSocket. All 7 Python libraries. Port 5000.</div></div>
+    <div class="svc"><div class="svc-name" style="color:var(--green)">📡 simulator</div><div class="svc-img">alpine:3.19</div><div class="svc-desc">Runs simulate_sensors.sh for all 10 sensors every 3 seconds.</div></div>
+    <div class="svc"><div class="svc-name" style="color:var(--purple)">🌐 nginx</div><div class="svc-img">nginx:1.25-alpine</div><div class="svc-desc">Dashboard on port 80. Proxies /api/ to Flask and /socket.io/ for WebSocket.</div></div>
+  </div>
+</div>
+
+<!-- ─── SECTION 8: RUN WITH DOCKER ────────────────────────── -->
+<div class="section" id="docker-run">
+  <div class="shdr"><div class="snum">8</div><div><div class="stitle">Run with Docker Compose</div><div class="ssub">Recommended — all 4 services in 3 commands</div></div></div>
+
+  <div class="step ubuntu">
+    <div class="step-hdr"><span class="step-icon">🚀</span><span class="step-title">Step 8.1 — Stop conflicting services, then build and start</span><span class="step-badge cu">Ubuntu-specific</span></div>
+    <div class="step-body">
+      <div class="cb"><div class="ch"><span class="cl">bash — from ~/iot-manager/</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+      <pre><span class="c"># Stop Ubuntu native services that conflict with Docker ports</span>
+<span class="cmd">sudo systemctl stop apache2 nginx mosquitto 2>/dev/null || true</span>
+
+<span class="c"># Verify ports 80, 1883, 5000, 9001 are free</span>
+<span class="cmd">sudo lsof -i :80 -i :1883 -i :5000 -i :9001 2>/dev/null | grep LISTEN</span>
+<span class="c"># Should print nothing — if it does, kill those processes first</span>
+
+<span class="cmd">cd ~/iot-manager</span>
+
+<span class="c"># Build and start (foreground — see live logs)</span>
+<span class="cmd">docker compose up --build</span>
+
+<span class="c"># OR start in background</span>
+<span class="cmd">docker compose up --build -d</span></pre></div>
+      <div class="vb"><div class="vh"><span class="vh-icon">✅</span><span class="vh-text">EXPECTED STARTUP OUTPUT</span></div><div class="vbody">
+        <div style="font-family:var(--mono);font-size:11px;color:var(--green);line-height:1.9;padding:4px">
+iot-mosquitto  | 1883: mosquitto version 2.0.x starting<br>
+iot-mosquitto  | Opening ipv4 listen socket on port 1883<br>
+iot-mosquitto  | Opening websockets listen socket on port 9001<br>
+iot-backend    | [DB] Tables created/verified on: sqlite:///...<br>
+iot-backend    | [MQTT] Connected to mosquitto:1883<br>
+iot-backend    | [MQTT] subscribed to iot/sensors/# iot/devices/#<br>
+iot-backend    | [HTTP] REST API  → http://0.0.0.0:5000/api/<br>
+iot-backend    | [WS]   Socket.IO → ws://0.0.0.0:5000/socket.io/<br>
+iot-simulator  | [IoT Simulator] 10-Sensor IoT Network<br>
+iot-simulator  | MANDATORY : temperature | pressure | humidity | moisture<br>
+iot-simulator  | [10:23:42] Tick #1 — 10 sensors — 4821 bytes<br>
+iot-backend    | [Tick 0001] 10 devices | 0 alerts
+        </div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="step blue">
+    <div class="step-hdr"><span class="step-icon">🔧</span><span class="step-title">Step 8.2 — Docker management commands</span></div>
+    <div class="step-body">
+      <div class="cb"><div class="ch"><span class="cl">bash</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+      <pre><span class="cmd">docker compose ps</span>                    <span class="c"># status of all 4 containers</span>
+<span class="cmd">docker compose logs -f</span>               <span class="c"># all logs (follow)</span>
+<span class="cmd">docker compose logs -f backend</span>       <span class="c"># Flask logs only</span>
+<span class="cmd">docker compose logs -f simulator</span>     <span class="c"># sensor output only</span>
+<span class="cmd">docker compose restart backend</span>       <span class="c"># restart one service</span>
+<span class="cmd">docker compose down</span>                  <span class="c"># stop all (keeps data)</span>
+<span class="cmd">docker compose down -v</span>               <span class="c"># stop + WIPE DATABASE</span>
+<span class="cmd">docker compose up --build backend</span>    <span class="c"># rebuild after code change</span>
+<span class="cmd">docker exec -it iot-backend bash</span>     <span class="c"># shell into backend</span>
+<span class="cmd">docker exec -it iot-simulator sh</span>     <span class="c"># shell into simulator</span>
+<span class="cmd">docker stats</span>                         <span class="c"># live CPU/RAM per container</span>
+<span class="cmd">xdg-open http://localhost</span>            <span class="c"># open dashboard in browser</span></pre></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SECTION 9: LOCAL RUN ───────────────────────────────── -->
+<div class="section" id="local-run">
+  <div class="shdr"><div class="snum">9</div><div><div class="stitle">Run Locally Without Docker</div><div class="ssub">For development — requires 4 terminals</div></div></div>
+
+  <div class="step teal">
+    <div class="step-hdr"><span class="step-icon">1️⃣</span><span class="step-title">Terminal 1 — Flask backend</span></div>
+    <div class="step-body">
+      <div class="cb"><div class="ch"><span class="cl">bash</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+      <pre><span class="cmd">cd ~/iot-manager/backend && source venv/bin/activate</span>
+<span class="cmd">export MQTT_BROKER=localhost MQTT_PORT=1883 USE_MQTT=true SENSOR_INTERVAL=3</span>
+<span class="cmd">export DATABASE_URL=sqlite:///./data/iot.db</span>
+<span class="cmd">python3 app.py</span></pre></div>
+    </div>
+  </div>
+
+  <div class="step green">
+    <div class="step-hdr"><span class="step-icon">2️⃣</span><span class="step-title">Terminal 2 — Sensor simulator</span></div>
+    <div class="step-body">
+      <div class="cb"><div class="ch"><span class="cl">bash</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+      <pre><span class="cmd">cd ~/iot-manager</span>
+<span class="cmd">export MQTT_BROKER=localhost USE_MQTT=true SENSOR_INTERVAL=3</span>
+<span class="cmd">bash scripts/simulate_sensors.sh</span>
+<span class="ok"># [10:23:42] Tick #1 — 10 sensors — 4821 bytes
+# [10:23:45] Tick #2 — 10 sensors — 4834 bytes</span></pre></div>
+    </div>
+  </div>
+
+  <div class="step blue">
+    <div class="step-hdr"><span class="step-icon">3️⃣</span><span class="step-title">Terminal 3 — Dashboard frontend</span></div>
+    <div class="step-body">
+      <div class="cb"><div class="ch"><span class="cl">bash</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+      <pre><span class="cmd">cd ~/iot-manager/frontend && python3 -m http.server 8080</span>
+<span class="cmd">xdg-open http://localhost:8080</span></pre></div>
+    </div>
+  </div>
+
+  <div class="step yellow">
+    <div class="step-hdr"><span class="step-icon">4️⃣</span><span class="step-title">Terminal 4 — MQTT monitor</span></div>
+    <div class="step-body">
+      <div class="cb"><div class="ch"><span class="cl">bash</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+      <pre><span class="cmd">cd ~/iot-manager/backend && source venv/bin/activate</span>
+<span class="cmd">python3 mqtt_subscriber.py --broker localhost</span>
+<span class="ok"># 10:23:42  dev-001  online  🔋87%  temperature_celsius:28.50  heat_index:30.12
+# 10:23:42  dev-002  online  🔋62%  pressure_hpa:1013.25  altitude_m:0.0
+# 10:23:42  dev-003  online  🔋91%  relative_humidity_percent:65.4
+# 10:23:42  dev-004  online  🔋15%  soil_moisture_percent:34.8  ⚠ WARNING</span></pre></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SECTION 10: VERIFY RUNNING ────────────────────────── -->
+<div class="section" id="verify-run">
+  <div class="shdr"><div class="snum">10</div><div><div class="stitle">Verify the Running System</div><div class="ssub">Test all 10 sensors, all libraries, all protocols — wait 15s after startup</div></div></div>
+
+  <div class="step green">
+    <div class="step-hdr"><span class="step-icon">🎯</span><span class="step-title">Complete system verification</span></div>
+    <div class="step-body">
+      <div class="cb"><div class="ch"><span class="cl">bash — run after 15 seconds uptime</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+      <pre><span class="c"># ── Health check ─────────────────────────────────────────</span>
+<span class="cmd">curl -s http://localhost:5000/health | python3 -m json.tool</span>
+<span class="ok"># { "status": "ok", "devices": 10, "mqtt": true, "scapy": true }</span>
+
+<span class="c"># ── All 10 sensors registered ─────────────────────────────</span>
+<span class="cmd">curl -s http://localhost:5000/api/devices | python3 -c "
+import json, sys
+devs = json.load(sys.stdin)
+print(f'Sensors registered: {len(devs)}/10')
+for d in devs:
+    print(f'  {d[\"device_id\"]} | {d[\"device_type\"]:16} | {d[\"status\"]:12} | batt:{d[\"battery_percent\"]}%')
+"</span>
+<span class="ok"># Sensors registered: 10/10
+#   dev-001 | temperature      | online       | batt:87%
+#   dev-002 | pressure         | online       | batt:62%
+#   dev-003 | humidity         | online       | batt:91%
+#   dev-004 | moisture         | degraded     | batt:15%
+#   dev-005 | wind_speed       | online       | batt:74%
+#   dev-006 | rainfall         | online       | batt:55%
+#   dev-007 | light_intensity  | online       | batt:80%
+#   dev-008 | co2              | online       | batt:43%
+#   dev-009 | noise_level      | maintenance  | batt:28%
+#   dev-010 | soil_ph          | online       | batt:67%</span>
+
+<span class="c"># ── Read the 4 mandatory sensors' current values ──────────</span>
+<span class="cmd">for sensor in temperature pressure humidity moisture; do
+  echo "=== $sensor (dev-00$(echo temperature pressure humidity moisture | tr ' ' '\n' | grep -n $sensor | cut -d: -f1)) ==="
+  curl -s "http://localhost:5000/api/devices?sensor_type=$sensor" 2>/dev/null || \
+  curl -s "http://localhost:5000/api/devices" | python3 -c "
+import json, sys
+devs = json.load(sys.stdin)
+for d in devs:
+    if d['device_type'] == '$sensor':
+        r = d.get('readings', {})
+        [print(f'  {k}: {v}') for k,v in list(r.items())[:5]]
+" 2>/dev/null
+done</span>
+
+<span class="c"># ── MQTT: subscribe to all 10 sensor topics ───────────────</span>
+<span class="cmd">mosquitto_sub -h localhost -t "iot/sensors/#" -v -C 5</span>
+<span class="c"># Receives 5 messages then exits</span>
+
+<span class="c"># ── MQTT: subscribe to mandatory sensors only ─────────────</span>
+<span class="cmd">mosquitto_sub -h localhost \
+    -t "iot/sensors/temperature/+/telemetry" \
+    -t "iot/sensors/pressure/+/telemetry" \
+    -t "iot/sensors/humidity/+/telemetry" \
+    -t "iot/sensors/moisture/+/telemetry" \
+    -v -C 4</span>
+
+<span class="c"># ── Pandas: descriptive statistics ───────────────────────</span>
+<span class="cmd">curl -s http://localhost:5000/api/analytics/summary | \
+    python3 -c "import json,sys; d=json.load(sys.stdin); print('Readings/hr:', d['readings_last_hour']); [print(f'  {k}: mean={v[\"mean\"]}') for k,v in d.get('pandas_stats',{}).items()]"</span>
+
+<span class="c"># ── Pandas: Z-score anomaly detection ────────────────────</span>
+<span class="cmd">curl -s "http://localhost:5000/api/analytics/anomalies?z=2.0" | python3 -m json.tool | head -30</span>
+
+<span class="c"># ── Matplotlib: save temperature chart PNG ───────────────</span>
+<span class="cmd">curl -s "http://localhost:5000/api/charts/timeseries.png?metric=temperature_celsius" \
+    -o /tmp/temperature.png && xdg-open /tmp/temperature.png</span>
+
+<span class="c"># ── Matplotlib: 6-panel dashboard ────────────────────────</span>
+<span class="cmd">curl -s http://localhost:5000/api/charts/dashboard.png \
+    -o /tmp/dashboard.png && xdg-open /tmp/dashboard.png</span>
+
+<span class="c"># ── Plotly: timeseries JSON ───────────────────────────────</span>
+<span class="cmd">curl -s "http://localhost:5000/api/plotly/timeseries?metric=relative_humidity_percent" | \
+    python3 -c "import json,sys; d=json.load(sys.stdin); print('Plotly traces:', len(d['data']))"</span>
+<span class="ok"># Plotly traces: 1</span>
+
+<span class="c"># ── Scapy: craft MQTT packet (IP/TCP/Raw) ─────────────────</span>
+<span class="cmd">curl -s -X POST http://localhost:5000/api/scapy/craft \
+    -H "Content-Type: application/json" \
+    -d '{"type":"mqtt","src_ip":"192.168.1.104","dst_ip":"192.168.1.200"}' | \
+    python3 -c "import json,sys; d=json.load(sys.stdin); print('Layers:', d['layers']); print('Length:', d['length'], 'bytes')"</span>
+<span class="ok"># Layers: ['IP', 'TCP', 'Raw']
+# Length: 79 bytes</span>
+
+<span class="c"># ── Alerts: threshold notifications ──────────────────────</span>
+<span class="cmd">curl -s "http://localhost:5000/api/alerts?limit=10" | \
+    python3 -c "import json,sys; [print(f'{a[\"severity\"]:8} | {a[\"device_id\"]} | {a[\"metric\"]}={a[\"value\"]}') for a in json.load(sys.stdin)]"</span>
+
+<span class="c"># ── Control: send command to temperature sensor ───────────</span>
+<span class="cmd">curl -s -X POST http://localhost:5000/api/devices/dev-001/command \
+    -H "Content-Type: application/json" \
+    -d '{"command":"calibrate","payload":{"mode":"full"}}' | python3 -m json.tool</span>
+<span class="ok"># { "command_id": 1, "status": "pending" }</span></pre></div>
+
+      <ul class="cl-list" style="margin-top:14px">
+        <li><span class="ck">✓</span><code>/health</code> → status:ok, devices:10, mqtt:true, scapy:true</li>
+        <li><span class="ck">✓</span><code>/api/devices</code> → 10 devices with sensor_type: temperature, pressure, humidity, moisture, wind_speed, rainfall, light_intensity, co2, noise_level, soil_ph</li>
+        <li><span class="ck">✓</span><code>mosquitto_sub -t "iot/sensors/#"</code> → telemetry every 3 seconds from all 10 sensors</li>
+        <li><span class="ck">✓</span><code>/api/analytics/summary</code> → pandas_stats with mean/std/min/max per metric</li>
+        <li><span class="ck">✓</span><code>/api/charts/timeseries.png</code> → valid PNG chart saved to /tmp</li>
+        <li><span class="ck">✓</span><code>/api/plotly/timeseries</code> → Plotly JSON with data traces</li>
+        <li><span class="ck">✓</span><code>/api/scapy/craft</code> → packet with IP/TCP/Raw layers and length</li>
+        <li><span class="ck">✓</span><code>/api/alerts</code> → threshold breach records with warning/critical severity</li>
+        <li><span class="ck">✓</span>Dashboard at <code>http://localhost</code> shows live data every 3 seconds</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SECTION 11: PROTOCOLS ──────────────────────────────── -->
+<div class="section" id="protocols">
+  <div class="shdr"><div class="snum">11</div><div><div class="stitle">Protocols — MQTT / HTTP / WebSocket</div><div class="ssub">MQTT topic structure and testing commands</div></div></div>
+
+  <div class="step yellow">
+    <div class="step-hdr"><span class="step-icon">📨</span><span class="step-title">MQTT — Topic structure for all 10 sensors</span><span class="step-badge cy">paho-mqtt</span></div>
+    <div class="step-body">
+      <div class="cb"><div class="ch"><span class="cl">MQTT topics and test commands</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+      <pre><span class="c"># Telemetry topics (shell script + backend publish here)</span>
+iot/sensors/temperature/dev-001/telemetry
+iot/sensors/pressure/dev-002/telemetry
+iot/sensors/humidity/dev-003/telemetry
+iot/sensors/moisture/dev-004/telemetry
+iot/sensors/wind_speed/dev-005/telemetry
+iot/sensors/rainfall/dev-006/telemetry
+iot/sensors/light_intensity/dev-007/telemetry
+iot/sensors/co2/dev-008/telemetry
+iot/sensors/noise_level/dev-009/telemetry
+iot/sensors/soil_ph/dev-010/telemetry
+
+<span class="c"># Subscribe to all 10 sensors</span>
+<span class="cmd">mosquitto_sub -h localhost -t "iot/sensors/#" -v</span>
+
+<span class="c"># Subscribe to mandatory sensors only</span>
+<span class="cmd">mosquitto_sub -h localhost \
+    -t "iot/sensors/temperature/#" \
+    -t "iot/sensors/pressure/#" \
+    -t "iot/sensors/humidity/#" \
+    -t "iot/sensors/moisture/#" -v</span>
+
+<span class="c"># Check MQTT broker status</span>
+<span class="cmd">curl -s http://localhost:5000/api/mqtt/status | python3 -m json.tool</span>
+<span class="ok"># { "connected": true, "broker": "mosquitto", "port": 1883, "enabled": true }</span>
+
+<span class="c"># Publish command via REST (paho-mqtt publishes internally)</span>
+<span class="cmd">curl -X POST http://localhost:5000/api/mqtt/publish \
+    -H "Content-Type: application/json" \
+    -d '{"topic":"iot/sensors/temperature/dev-001/command","payload":{"command":"calibrate"}}'</span></pre></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SECTION 12: DATABASE ───────────────────────────────── -->
+<div class="section" id="database">
+  <div class="shdr"><div class="snum">12</div><div><div class="stitle">Database — SQLAlchemy + SQLite</div><div class="ssub">6 tables, auto-created, inspect with sqlite3</div></div></div>
+
+  <div class="step purple">
+    <div class="step-hdr"><span class="step-icon">🗄️</span><span class="step-title">Inspect the database directly</span></div>
+    <div class="step-body">
+      <div class="cb"><div class="ch"><span class="cl">bash</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+      <pre><span class="cmd">sudo apt install -y sqlite3</span>
+
+<span class="c"># Open DB (Docker)</span>
+<span class="cmd">docker exec -it iot-backend bash -c "sqlite3 /app/data/iot.db"</span>
+
+<span class="c"># Open DB (Local)</span>
+<span class="cmd">sqlite3 ~/iot-manager/backend/data/iot.db</span>
+
+<span class="c"># Useful queries</span>
+<span class="cmd">.tables</span>                                           <span class="c">-- 6 tables</span>
+<span class="cmd">SELECT device_id, device_type, status, battery FROM devices;</span>
+<span class="cmd">SELECT COUNT(*) FROM sensor_readings;</span>
+<span class="cmd">SELECT device_id, COUNT(*) FROM sensor_readings GROUP BY device_id;</span>
+<span class="cmd">SELECT device_id, metric, value, severity FROM alerts WHERE acknowledged=0 LIMIT 10;</span>
+<span class="cmd">SELECT topic, direction FROM mqtt_messages ORDER BY received_at DESC LIMIT 5;</span>
+<span class="cmd">.quit</span></pre></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SECTION 13: API REFERENCE ─────────────────────────── -->
+<div class="section" id="api">
+  <div class="shdr"><div class="snum">13</div><div><div class="stitle">REST API Reference — 32 Endpoints</div><div class="ssub">Base URL: http://localhost:5000</div></div></div>
+
+  <table class="at">
+    <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th><th>Library</th></tr></thead>
+    <tbody>
+      <tr class="gr"><td colspan="4">DEVICE MANAGEMENT</td></tr>
+      <tr><td><span class="M GET">GET</span></td><td class="ep">/health</td><td>System health — MQTT, DB, Scapy</td><td>Flask</td></tr>
+      <tr><td><span class="M GET">GET</span></td><td class="ep">/api/devices</td><td>All 10 sensors — type, status, battery</td><td>SQLAlchemy</td></tr>
+      <tr><td><span class="M GET">GET</span></td><td class="ep">/api/devices/&lt;id&gt;</td><td>Single sensor details</td><td>SQLAlchemy</td></tr>
+      <tr><td><span class="M GET">GET</span></td><td class="ep">/api/devices/&lt;id&gt;/readings?limit=50</td><td>Sensor reading history</td><td>SQLAlchemy</td></tr>
+      <tr><td><span class="M POST">POST</span></td><td class="ep">/api/devices/&lt;id&gt;/command</td><td>Remote command (calibrate, reboot…)</td><td>SQLAlchemy</td></tr>
+      <tr><td><span class="M POST">POST</span></td><td class="ep">/api/devices/&lt;id&gt;/alerts_toggle</td><td>Enable/disable alerts per sensor</td><td>SQLAlchemy</td></tr>
+      <tr class="gr"><td colspan="4">ALERT SYSTEM</td></tr>
+      <tr><td><span class="M GET">GET</span></td><td class="ep">/api/alerts?unacknowledged=true</td><td>Get alerts — filterable</td><td>SQLAlchemy</td></tr>
+      <tr><td><span class="M POST">POST</span></td><td class="ep">/api/alerts/&lt;id&gt;/acknowledge</td><td>Acknowledge single alert</td><td>SQLAlchemy</td></tr>
+      <tr><td><span class="M POST">POST</span></td><td class="ep">/api/alerts/acknowledge_all</td><td>Acknowledge all alerts</td><td>SQLAlchemy</td></tr>
+      <tr><td><span class="M GET">GET</span></td><td class="ep">/api/thresholds</td><td>Get all 10 sensor thresholds</td><td>Flask</td></tr>
+      <tr><td><span class="M POST">POST</span></td><td class="ep">/api/thresholds</td><td>Update thresholds dynamically</td><td>Flask</td></tr>
+      <tr class="gr"><td colspan="4">PANDAS ANALYTICS</td></tr>
+      <tr><td><span class="M GET">GET</span></td><td class="ep">/api/analytics/summary</td><td>Descriptive stats for all sensors</td><td>Pandas</td></tr>
+      <tr><td><span class="M GET">GET</span></td><td class="ep">/api/analytics/anomalies?z=2.5</td><td>Z-score anomaly detection</td><td>Pandas</td></tr>
+      <tr><td><span class="M GET">GET</span></td><td class="ep">/api/analytics/correlation</td><td>Pearson correlation matrix</td><td>Pandas</td></tr>
+      <tr><td><span class="M GET">GET</span></td><td class="ep">/api/analytics/rolling/&lt;id&gt;?metric=temperature_celsius</td><td>Rolling avg window=5</td><td>Pandas</td></tr>
+      <tr class="gr"><td colspan="4">MATPLOTLIB + PLOTLY</td></tr>
+      <tr><td><span class="M GET">GET</span></td><td class="ep">/api/charts/timeseries.png?metric=temperature_celsius</td><td>Matplotlib PNG chart</td><td>Matplotlib</td></tr>
+      <tr><td><span class="M GET">GET</span></td><td class="ep">/api/charts/dashboard.png</td><td>6-panel GridSpec dashboard PNG</td><td>Matplotlib</td></tr>
+      <tr><td><span class="M GET">GET</span></td><td class="ep">/api/charts/dashboard_b64</td><td>Dashboard PNG as base64</td><td>Matplotlib</td></tr>
+      <tr><td><span class="M GET">GET</span></td><td class="ep">/api/plotly/timeseries?metric=relative_humidity_percent</td><td>Interactive chart JSON</td><td>Plotly</td></tr>
+      <tr><td><span class="M GET">GET</span></td><td class="ep">/api/plotly/heatmap</td><td>Sensor heatmap JSON</td><td>Plotly</td></tr>
+      <tr><td><span class="M GET">GET</span></td><td class="ep">/api/plotly/alerts_histogram</td><td>Alert histogram JSON</td><td>Plotly</td></tr>
+      <tr class="gr"><td colspan="4">MQTT + SCAPY</td></tr>
+      <tr><td><span class="M GET">GET</span></td><td class="ep">/api/mqtt/status</td><td>paho-mqtt connection status</td><td>paho-mqtt</td></tr>
+      <tr><td><span class="M POST">POST</span></td><td class="ep">/api/mqtt/publish</td><td>Publish via paho-mqtt</td><td>paho-mqtt</td></tr>
+      <tr><td><span class="M GET">GET</span></td><td class="ep">/api/scapy/craft</td><td>Craft IP/TCP/MQTT packet with Scapy</td><td>Scapy</td></tr>
+      <tr><td><span class="M GET">GET</span></td><td class="ep">/api/scapy/stats</td><td>Packet stats by protocol/port</td><td>Scapy</td></tr>
+      <tr><td><span class="M GET">GET</span></td><td class="ep">/api/scapy/db_packets</td><td>Packets persisted to SQLite</td><td>Scapy+SQLAlchemy</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ─── SECTION 14: ALERTS ─────────────────────────────────── -->
+<div class="section" id="alerts">
+  <div class="shdr"><div class="snum">14</div><div><div class="stitle">Alert System — Thresholds for All 10 Sensors</div><div class="ssub">Warning + Critical levels, WebSocket push, 5-min deduplication</div></div></div>
+
+  <div class="step red">
+    <div class="step-hdr"><span class="step-icon">🚨</span><span class="step-title">Default thresholds per sensor type</span></div>
+    <div class="step-body">
+      <table class="at">
+        <thead><tr><th>Type</th><th>Device</th><th>Primary Metric</th><th>Warning</th><th>Critical</th><th>Dir</th></tr></thead>
+        <tbody>
+          <tr><td style="color:var(--cyan);font-family:var(--mono)">temperature</td><td style="font-family:var(--mono);color:var(--tx3)">dev-001</td><td style="font-family:var(--mono)">temperature_celsius</td><td style="color:var(--yellow)">55°C</td><td style="color:var(--red)">70°C</td><td>above</td></tr>
+          <tr><td style="color:var(--cyan);font-family:var(--mono)">pressure</td><td style="font-family:var(--mono);color:var(--tx3)">dev-002</td><td style="font-family:var(--mono)">pressure_hpa</td><td style="color:var(--yellow)">970 hPa</td><td style="color:var(--red)">962 hPa</td><td>below</td></tr>
+          <tr><td style="color:var(--cyan);font-family:var(--mono)">humidity</td><td style="font-family:var(--mono);color:var(--tx3)">dev-003</td><td style="font-family:var(--mono)">relative_humidity_%</td><td style="color:var(--yellow)">85%</td><td style="color:var(--red)">95%</td><td>above</td></tr>
+          <tr><td style="color:var(--cyan);font-family:var(--mono)">moisture</td><td style="font-family:var(--mono);color:var(--tx3)">dev-004</td><td style="font-family:var(--mono)">soil_moisture_%</td><td style="color:var(--yellow)">15%</td><td style="color:var(--red)">8%</td><td>below</td></tr>
+          <tr><td style="color:var(--purple);font-family:var(--mono)">wind_speed</td><td style="font-family:var(--mono);color:var(--tx3)">dev-005</td><td style="font-family:var(--mono)">wind_speed_kmh</td><td style="color:var(--yellow)">62 km/h</td><td style="color:var(--red)">89 km/h</td><td>above</td></tr>
+          <tr><td style="color:var(--purple);font-family:var(--mono)">rainfall</td><td style="font-family:var(--mono);color:var(--tx3)">dev-006</td><td style="font-family:var(--mono)">rainfall_rate_mm/hr</td><td style="color:var(--yellow)">10 mm/hr</td><td style="color:var(--red)">50 mm/hr</td><td>above</td></tr>
+          <tr><td style="color:var(--purple);font-family:var(--mono)">light_intensity</td><td style="font-family:var(--mono);color:var(--tx3)">dev-007</td><td style="font-family:var(--mono)">light_lux</td><td style="color:var(--yellow)">100,000</td><td style="color:var(--red)">115,000</td><td>above</td></tr>
+          <tr><td style="color:var(--purple);font-family:var(--mono)">co2</td><td style="font-family:var(--mono);color:var(--tx3)">dev-008</td><td style="font-family:var(--mono)">co2_ppm</td><td style="color:var(--yellow)">1,000 ppm</td><td style="color:var(--red)">2,000 ppm</td><td>above</td></tr>
+          <tr><td style="color:var(--purple);font-family:var(--mono)">noise_level</td><td style="font-family:var(--mono);color:var(--tx3)">dev-009</td><td style="font-family:var(--mono)">noise_db</td><td style="color:var(--yellow)">75 dB</td><td style="color:var(--red)">90 dB</td><td>above</td></tr>
+          <tr><td style="color:var(--purple);font-family:var(--mono)">soil_ph</td><td style="font-family:var(--mono);color:var(--tx3)">dev-010</td><td style="font-family:var(--mono)">soil_ph</td><td style="color:var(--yellow)">pH 5.5</td><td style="color:var(--red)">pH 4.5</td><td>below</td></tr>
+          <tr><td style="color:var(--orange);font-family:var(--mono)">all</td><td style="font-family:var(--mono);color:var(--tx3)">all</td><td style="font-family:var(--mono)">battery_percent</td><td style="color:var(--yellow)">20%</td><td style="color:var(--red)">10%</td><td>below</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SECTION 15: TROUBLESHOOTING ───────────────────────── -->
+<div class="section" id="trouble">
+  <div class="shdr"><div class="snum">15</div><div><div class="stitle">Troubleshooting — Ubuntu Fixes</div><div class="ssub">Solutions to the most common Ubuntu-specific problems</div></div></div>
+
+  <div class="step red"><div class="step-hdr"><span class="step-icon">🚫</span><span class="step-title">Permission denied connecting to Docker daemon</span></div>
+  <div class="step-body"><div class="cb"><div class="ch"><span class="cl">fix</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+  <pre><span class="cmd">sudo usermod -aG docker $USER && newgrp docker</span>
+<span class="cmd">docker ps</span>   <span class="c"># must work without sudo</span></pre></div></div></div>
+
+  <div class="step red"><div class="step-hdr"><span class="step-icon">🚫</span><span class="step-title">Port 1883 or 80 already in use</span></div>
+  <div class="step-body"><div class="cb"><div class="ch"><span class="cl">fix</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+  <pre><span class="cmd">sudo systemctl stop mosquitto apache2 nginx 2>/dev/null || true</span>
+<span class="cmd">sudo lsof -i :1883 -i :80 -i :5000</span>   <span class="c"># check what's still running</span>
+<span class="cmd">docker compose up --build</span></pre></div></div></div>
+
+  <div class="step red"><div class="step-hdr"><span class="step-icon">🚫</span><span class="step-title">pip install scapy fails — missing libpcap</span></div>
+  <div class="step-body"><div class="cb"><div class="ch"><span class="cl">fix</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+  <pre><span class="cmd">sudo apt install -y libpcap-dev gcc python3.11-dev</span>
+<span class="cmd">pip install --force-reinstall scapy==2.5.0</span></pre></div></div></div>
+
+  <div class="step red"><div class="step-hdr"><span class="step-icon">🚫</span><span class="step-title">No sensor data — readings_last_hour: 0</span></div>
+  <div class="step-body"><div class="cb"><div class="ch"><span class="cl">fix</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+  <pre><span class="cmd">docker compose logs simulator | tail -10</span>
+<span class="ok"># [10:23:42] Tick #5 — 10 sensors — 4821 bytes  ← must appear</span>
+<span class="cmd">docker compose restart simulator backend</span></pre></div></div></div>
+
+  <div class="step red"><div class="step-hdr"><span class="step-icon">🚫</span><span class="step-title">"docker compose" command not found</span></div>
+  <div class="step-body"><div class="cb"><div class="ch"><span class="cl">fix</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+  <pre><span class="cmd">sudo apt install -y docker-compose-plugin</span>
+<span class="cmd">docker compose version</span>   <span class="c"># must show v2.x.x</span></pre></div></div></div>
+
+  <div class="step green"><div class="step-hdr"><span class="step-icon">🔄</span><span class="step-title">Complete reset — wipe everything and rebuild</span></div>
+  <div class="step-body"><div class="cb"><div class="ch"><span class="cl">bash</span><button class="cp-btn" onclick="cp(this)">Copy</button></div>
+  <pre><span class="cmd">cd ~/iot-manager</span>
+<span class="cmd">docker compose down -v</span>           <span class="c"># stop + wipe volumes (database)</span>
+<span class="cmd">docker compose down --rmi local</span>  <span class="c"># remove built images</span>
+<span class="cmd">docker system prune -f</span>           <span class="c"># free disk space</span>
+<span class="cmd">docker compose up --build</span>        <span class="c"># clean rebuild from scratch</span></pre></div></div></div>
+
+</div><!-- /section 15 -->
+
+<hr class="divider">
+<div style="text-align:center;padding:20px 0 40px;color:var(--tx3);font-size:11px;font-family:var(--mono)">
+  IoT Sensor Manager v3.1 &nbsp;·&nbsp; Ubuntu 20.04 / 22.04 / 24.04 LTS<br>
+  Sensors: temperature · pressure · humidity · moisture · wind_speed · rainfall · light_intensity · co2 · noise_level · soil_ph
+</div>
+</div><!-- /body -->
+</div><!-- /main -->
+</div><!-- /layout -->
+<script>
+function cp(btn){const pre=btn.closest('.cb').querySelector('pre');navigator.clipboard.writeText(pre.innerText).then(()=>{btn.textContent='Copied!';btn.classList.add('ok');setTimeout(()=>{btn.textContent='Copy';btn.classList.remove('ok')},2000);})}
+const secs=document.querySelectorAll('.section[id]'),links=document.querySelectorAll('.ta');
+secs.forEach(s=>new IntersectionObserver(e=>{e.forEach(x=>{if(x.isIntersecting)links.forEach(l=>l.classList.toggle('active',l.getAttribute('href')==='#'+x.target.id));});},{rootMargin:'-15% 0px -78% 0px'}).observe(s));
+</script>
+</body>
+</html>

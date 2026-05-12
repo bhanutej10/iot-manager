@@ -1,0 +1,1486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>IoT Device Manager — Full Stack</title>
+<script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.7.5/dist/socket.io.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist@2.30.0/plotly.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ─── Reset & Root ─────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#060a12;--bg1:#0d1420;--bg2:#111c2e;--bg3:#172035;--bg4:#1e2a40;
+  --b1:rgba(56,189,248,.08);--b2:rgba(56,189,248,.16);--b3:rgba(56,189,248,.28);
+  --tx1:#e2e8f0;--tx2:#94a3b8;--tx3:#475569;
+  --cyan:#38bdf8;--teal:#2dd4bf;--green:#34d399;--lime:#a3e635;
+  --yellow:#fbbf24;--orange:#fb923c;--red:#f87171;--pink:#f472b6;--purple:#a78bfa;
+  --font:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono','Fira Code',monospace;
+}
+html,body{height:100%;background:var(--bg0);color:var(--tx1);font-family:var(--font);font-size:13px;overflow:hidden}
+
+/* ─── App Shell ────────────────────────────────────────── */
+.shell{display:flex;height:100vh;overflow:hidden}
+
+/* ─── Sidebar ──────────────────────────────────────────── */
+.sidebar{
+  width:218px;min-width:218px;background:var(--bg1);
+  border-right:1px solid var(--b2);display:flex;flex-direction:column;
+  overflow:hidden;z-index:20;
+}
+.logo{padding:16px 14px 12px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:10px;flex-shrink:0}
+.logo-sq{width:34px;height:34px;background:linear-gradient(135deg,var(--cyan),var(--purple));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.logo-label{font-size:13px;font-weight:700;letter-spacing:.3px}
+.logo-ver{font-size:9px;color:var(--tx3);font-family:var(--mono);letter-spacing:1px}
+
+.nav{flex:1;overflow-y:auto;padding:10px 8px}
+.nav-sec{font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;padding:10px 6px 4px;font-family:var(--mono)}
+.nav-i{
+  display:flex;align-items:center;gap:9px;padding:7px 9px;
+  border-radius:6px;cursor:pointer;color:var(--tx2);font-size:12px;font-weight:500;
+  margin-bottom:2px;border:1px solid transparent;transition:all .12s;
+  white-space:nowrap;overflow:hidden;
+}
+.nav-i:hover{background:var(--bg3);color:var(--tx1)}
+.nav-i.on{background:rgba(56,189,248,.1);color:var(--cyan);border-color:rgba(56,189,248,.2)}
+.nav-i .ico{width:15px;text-align:center;font-size:13px;flex-shrink:0}
+.badge{
+  margin-left:auto;font-size:9px;font-weight:700;border-radius:10px;
+  padding:1px 6px;font-family:var(--mono);flex-shrink:0;
+}
+.badge.red{background:rgba(248,113,113,.2);color:var(--red)}
+.badge.yel{background:rgba(251,191,36,.2);color:var(--yellow)}
+.badge.cyn{background:rgba(56,189,248,.15);color:var(--cyan)}
+
+/* ─── Stack Indicator in Sidebar ──────────────────────── */
+.stack-panel{padding:10px 10px 14px;border-top:1px solid var(--b1);flex-shrink:0}
+.stack-title{font-size:9px;color:var(--tx3);letter-spacing:1.5px;text-transform:uppercase;font-family:var(--mono);margin-bottom:8px}
+.lib-pill{
+  display:flex;align-items:center;gap:6px;padding:4px 7px;
+  border-radius:4px;margin-bottom:3px;font-size:10px;
+  font-family:var(--mono);cursor:default;border:1px solid transparent;
+  transition:border-color .15s;
+}
+.lib-pill:hover{border-color:var(--b3)}
+.lib-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.lib-pill.ok .lib-dot{background:var(--green)}
+.lib-pill.warn .lib-dot{background:var(--yellow);animation:pulse 2s infinite}
+.lib-name{color:var(--tx2);flex:1}
+.lib-badge{font-size:9px;color:var(--tx3);margin-left:auto}
+
+/* ─── Main Area ────────────────────────────────────────── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+.topbar{
+  height:48px;min-height:48px;background:var(--bg1);
+  border-bottom:1px solid var(--b2);
+  display:flex;align-items:center;padding:0 18px;gap:10px;flex-shrink:0;
+}
+.tbar-title{font-size:15px;font-weight:700;flex:1}
+.tbar-sub{font-size:10px;color:var(--tx3);font-family:var(--mono)}
+
+.btn{
+  padding:5px 13px;border-radius:6px;border:1px solid var(--b3);
+  background:transparent;color:var(--tx1);font-size:11px;font-weight:600;
+  cursor:pointer;font-family:var(--font);transition:all .12s;white-space:nowrap;
+}
+.btn:hover{background:var(--bg4);border-color:var(--cyan);color:var(--cyan)}
+.btn.primary{background:rgba(56,189,248,.12);border-color:var(--cyan);color:var(--cyan)}
+.btn.primary:hover{background:rgba(56,189,248,.22)}
+.btn.danger{border-color:rgba(248,113,113,.35);color:var(--red)}
+.btn.danger:hover{background:rgba(248,113,113,.1)}
+.btn.success{border-color:rgba(52,211,153,.35);color:var(--green)}
+
+.content{flex:1;overflow-y:auto;padding:16px;min-width:0}
+.view{display:none}
+.view.on{display:block}
+
+/* ─── Protocol Status Bar ──────────────────────────────── */
+.proto-bar{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;
+}
+.proto-card{
+  background:var(--bg2);border:1px solid var(--b2);border-radius:8px;
+  padding:10px 12px;display:flex;align-items:center;gap:10px;
+}
+.proto-icon{font-size:20px;flex-shrink:0}
+.proto-label{font-size:10px;color:var(--tx3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.8px}
+.proto-val{font-size:13px;font-weight:700;font-family:var(--mono)}
+.proto-card.active .proto-val{color:var(--green)}
+.proto-card.warn .proto-val{color:var(--yellow)}
+.proto-card.error .proto-val{color:var(--red)}
+
+/* ─── Stat Cards ───────────────────────────────────────── */
+.stats-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px}
+.sc{
+  background:var(--bg2);border:1px solid var(--b1);border-radius:8px;
+  padding:11px 13px;position:relative;overflow:hidden;
+}
+.sc::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:2px 2px 0 0}
+.sc.s-green::after{background:var(--green)}
+.sc.s-yellow::after{background:var(--yellow)}
+.sc.s-red::after{background:var(--red)}
+.sc.s-cyan::after{background:var(--cyan)}
+.sc.s-purple::after{background:var(--purple)}
+.sc.s-orange::after{background:var(--orange)}
+.sc-lbl{font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:1.2px;font-family:var(--mono);margin-bottom:5px}
+.sc-val{font-size:22px;font-weight:700;line-height:1;font-family:var(--mono)}
+.sc-val.green{color:var(--green)}.sc-val.red{color:var(--red)}.sc-val.yellow{color:var(--yellow)}.sc-val.cyan{color:var(--cyan)}.sc-val.purple{color:var(--purple)}.sc-val.orange{color:var(--orange)}
+.sc-sub{font-size:9px;color:var(--tx3);margin-top:3px}
+
+/* ─── Panels ───────────────────────────────────────────── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
+.grid12{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;margin-bottom:14px}
+.panel{background:var(--bg2);border:1px solid var(--b2);border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
+.ph{padding:10px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.ph-title{font-size:12px;font-weight:700;flex:1}
+.ph-badge{font-size:9px;padding:2px 8px;border-radius:10px;font-family:var(--mono);font-weight:600}
+.ph-badge.green{background:rgba(52,211,153,.15);color:var(--green)}
+.ph-badge.red{background:rgba(248,113,113,.15);color:var(--red)}
+.ph-badge.yellow{background:rgba(251,191,36,.15);color:var(--yellow)}
+.ph-badge.cyan{background:rgba(56,189,248,.15);color:var(--cyan)}
+.ph-badge.purple{background:rgba(167,139,250,.15);color:var(--purple)}
+.pb{padding:14px;flex:1;min-height:0}
+
+/* ─── Device Cards ─────────────────────────────────────── */
+.dev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(272px,1fr));gap:11px}
+.dev-card{
+  background:var(--bg2);border:1px solid var(--b2);border-radius:10px;
+  padding:13px;cursor:pointer;transition:all .18s;position:relative;overflow:hidden;
+}
+.dev-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
+.dev-card.online::before{background:var(--green)}
+.dev-card.degraded::before{background:var(--yellow)}
+.dev-card.maintenance::before{background:var(--orange)}
+.dev-card.offline::before{background:var(--red)}
+.dev-card:hover{border-color:var(--b3);background:var(--bg3);transform:translateY(-1px)}
+.dev-card.sel{border-color:var(--cyan);background:rgba(56,189,248,.04)}
+.dh{display:flex;align-items:flex-start;gap:9px;margin-bottom:9px}
+.dicon{width:36px;height:36px;border-radius:8px;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.dname{font-size:12px;font-weight:700;line-height:1.3}
+.did{font-size:9px;color:var(--tx3);font-family:var(--mono)}
+.dloc{font-size:10px;color:var(--tx2);margin-top:2px}
+.dstatus{margin-left:auto;font-size:9px;padding:2px 7px;border-radius:10px;font-family:var(--mono);font-weight:700;text-transform:uppercase;flex-shrink:0}
+.dstatus.online{background:rgba(52,211,153,.15);color:var(--green)}
+.dstatus.degraded{background:rgba(251,191,36,.15);color:var(--yellow)}
+.dstatus.maintenance{background:rgba(251,146,60,.15);color:var(--orange)}
+.dstatus.offline{background:rgba(248,113,113,.15);color:var(--red)}
+.dmetrics{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.mchip{background:var(--bg3);border-radius:5px;padding:5px 8px;display:flex;align-items:center;justify-content:space-between}
+.mk{font-size:9px;color:var(--tx3);font-family:var(--mono)}
+.mv{font-size:11px;font-weight:700;font-family:var(--mono)}
+.mv.warn{color:var(--yellow)}.mv.crit{color:var(--red)}
+.dfoot{display:flex;align-items:center;gap:7px;margin-top:9px;padding-top:9px;border-top:1px solid var(--b1);font-size:9px;color:var(--tx3);font-family:var(--mono)}
+.bbar{flex:1;height:3px;background:var(--bg4);border-radius:2px;overflow:hidden}
+.bfill{height:100%;border-radius:2px;transition:width .5s}
+
+/* ─── Alert Items ──────────────────────────────────────── */
+.alert-list{max-height:220px;overflow-y:auto}
+.ai{display:flex;align-items:flex-start;gap:9px;padding:9px 14px;border-bottom:1px solid var(--b1);transition:background .12s}
+.ai:hover{background:var(--bg3)}
+.ai:last-child{border-bottom:none}
+.adot{width:7px;height:7px;border-radius:50%;margin-top:3px;flex-shrink:0}
+.adot.critical{background:var(--red);box-shadow:0 0 5px var(--red)}
+.adot.warning{background:var(--yellow);box-shadow:0 0 5px var(--yellow)}
+.amsg{flex:1;font-size:11px;line-height:1.5}
+.atime{font-size:9px;color:var(--tx3);font-family:var(--mono);white-space:nowrap}
+.ack-btn{font-size:9px;padding:2px 7px;border-radius:4px;border:1px solid var(--b3);background:transparent;color:var(--tx2);cursor:pointer;font-family:var(--font);transition:all .12s;white-space:nowrap}
+.ack-btn:hover{background:var(--bg4);color:var(--tx1)}
+.ack-done{font-size:9px;color:var(--tx3)}
+
+/* ─── Tabs ─────────────────────────────────────────────── */
+.tabs{display:flex;gap:2px}
+.tab{padding:5px 12px;border-radius:5px;cursor:pointer;font-size:11px;color:var(--tx2);transition:all .12s;border:1px solid transparent}
+.tab:hover{color:var(--tx1);background:var(--bg3)}
+.tab.on{color:var(--cyan);background:rgba(56,189,248,.1);border-color:rgba(56,189,248,.2)}
+
+/* ─── Code / Log blocks ────────────────────────────────── */
+.logbox{
+  background:var(--bg0);border:1px solid var(--b2);border-radius:6px;
+  font-family:var(--mono);font-size:10px;padding:10px;
+  overflow-y:auto;color:var(--tx2);line-height:1.7;
+}
+.ll{margin-bottom:1px}
+.ll .ts{color:var(--tx3)}.ll .topic{color:var(--cyan)}.ll .pay{color:var(--green)}
+.ll .sys{color:var(--purple)}.ll .err{color:var(--red)}.ll .ws{color:var(--teal)}
+.ll .out{color:var(--yellow)}
+
+/* ─── Table ────────────────────────────────────────────── */
+.iot-table{width:100%;border-collapse:collapse;font-size:11px}
+.iot-table th{padding:7px 10px;text-align:left;font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px;font-family:var(--mono);border-bottom:1px solid var(--b2)}
+.iot-table td{padding:7px 10px;border-bottom:1px solid var(--b1);vertical-align:middle}
+.iot-table tr:hover td{background:var(--bg3)}
+.iot-table tr:last-child td{border-bottom:none}
+
+/* ─── Detail Drawer ────────────────────────────────────── */
+.drawer{
+  position:fixed;right:0;top:0;bottom:0;width:360px;
+  background:var(--bg2);border-left:1px solid var(--b3);
+  z-index:200;display:flex;flex-direction:column;
+  transform:translateX(100%);transition:transform .22s;box-shadow:-8px 0 30px rgba(0,0,0,.4);
+}
+.drawer.open{transform:translateX(0)}
+.drawerh{padding:14px;border-bottom:1px solid var(--b2);display:flex;align-items:center;gap:10px;flex-shrink:0}
+.drawerb{flex:1;overflow-y:auto;padding:14px}
+.drawer-sec{margin-bottom:18px}
+.drawer-sec-t{font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:1.5px;font-family:var(--mono);margin-bottom:9px;display:flex;align-items:center;gap:6px}
+.xbtn{margin-left:auto;background:none;border:none;color:var(--tx2);cursor:pointer;font-size:17px;padding:3px;border-radius:4px}
+.xbtn:hover{color:var(--tx1);background:var(--bg3)}
+.readings-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.ri{background:var(--bg3);border:1px solid var(--b1);border-radius:6px;padding:8px}
+.ri-lbl{font-size:9px;color:var(--tx3);font-family:var(--mono);margin-bottom:3px}
+.ri-val{font-size:17px;font-weight:700;font-family:var(--mono)}
+.cmd-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+
+/* ─── Thresh editor ────────────────────────────────────── */
+.trow{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--b1)}
+.trow:last-child{border-bottom:none}
+.tname{font-family:var(--mono);color:var(--tx2);font-size:11px;width:150px;flex-shrink:0}
+.ti{background:var(--bg3);border:1px solid var(--b2);border-radius:4px;color:var(--tx1);padding:3px 8px;font-size:11px;width:68px;font-family:var(--mono);text-align:right}
+.tlbl{font-size:9px;color:var(--tx3);width:50px;text-align:center}
+
+/* ─── Chart wrapper ────────────────────────────────────── */
+.cw{position:relative}
+.cw-h200{height:200px}
+.cw-h160{height:160px}
+.cw-h240{height:240px}
+.cw-h300{height:300px}
+.plotly-wrap{width:100%;border-radius:6px;overflow:hidden}
+
+/* ─── Scapy packet table ───────────────────────────────── */
+.pkt-row td{font-family:var(--mono);font-size:10px}
+.pkt-tcp{color:var(--cyan)}.pkt-udp{color:var(--green)}.pkt-raw{color:var(--purple)}
+
+/* ─── Pandas stats ─────────────────────────────────────── */
+.stat-table{width:100%;border-collapse:collapse;font-size:10px}
+.stat-table th{padding:5px 8px;font-family:var(--mono);font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid var(--b2);text-align:right}
+.stat-table th:first-child{text-align:left}
+.stat-table td{padding:5px 8px;border-bottom:1px solid var(--b1);text-align:right;font-family:var(--mono)}
+.stat-table td:first-child{text-align:left;color:var(--cyan)}
+.stat-table tr:hover td{background:var(--bg3)}
+
+/* ─── Scrollbars ───────────────────────────────────────── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--b3);border-radius:2px}
+
+/* ─── Animations ───────────────────────────────────────── */
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.fade-in{animation:fadeIn .25s ease}
+
+/* ─── Responsive ───────────────────────────────────────── */
+@media(max-width:1300px){.stats-row{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:1000px){.grid2,.grid3,.grid12{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ══ SIDEBAR ══════════════════════════════════════════════ -->
+<nav class="sidebar">
+  <div class="logo">
+    <div class="logo-sq">📡</div>
+    <div>
+      <div class="logo-label">IoT Manager</div>
+      <div class="logo-ver">FULL STACK v3.0</div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <div class="nav-sec">Monitor</div>
+    <div class="nav-i on" id="ni-dashboard" onclick="nav('dashboard',this)">
+      <span class="ico">⊞</span>Dashboard
+    </div>
+    <div class="nav-i" id="ni-devices" onclick="nav('devices',this)">
+      <span class="ico">◉</span>Devices
+      <span class="badge cyn" id="nb-devices">10</span>
+    </div>
+    <div class="nav-i" id="ni-alerts" onclick="nav('alerts',this)">
+      <span class="ico">⚠</span>Alerts
+      <span class="badge red" id="nb-alerts">0</span>
+    </div>
+
+    <div class="nav-sec">Libraries</div>
+    <div class="nav-i" id="ni-pandas" onclick="nav('pandas',this)">
+      <span class="ico">🐼</span>Pandas Analytics
+    </div>
+    <div class="nav-i" id="ni-matplotlib" onclick="nav('matplotlib',this)">
+      <span class="ico">📊</span>Matplotlib Charts
+    </div>
+    <div class="nav-i" id="ni-plotly" onclick="nav('plotly',this)">
+      <span class="ico">📈</span>Plotly Interactive
+    </div>
+
+    <div class="nav-sec">Protocols</div>
+    <div class="nav-i" id="ni-mqtt" onclick="nav('mqtt',this)">
+      <span class="ico">⇌</span>MQTT / paho
+    </div>
+    <div class="nav-i" id="ni-websocket" onclick="nav('websocket',this)">
+      <span class="ico">⚡</span>WebSocket
+    </div>
+    <div class="nav-i" id="ni-scapy" onclick="nav('scapy',this)">
+      <span class="ico">🔬</span>Scapy Packets
+    </div>
+
+    <div class="nav-sec">Config</div>
+    <div class="nav-i" id="ni-docker" onclick="nav('docker',this)">
+      <span class="ico">🐳</span>Docker Stack
+    </div>
+    <div class="nav-i" id="ni-thresholds" onclick="nav('thresholds',this)">
+      <span class="ico">⧫</span>Thresholds
+    </div>
+  </div>
+
+  <!-- Library status pills -->
+  <div class="stack-panel">
+    <div class="stack-title">Library Status</div>
+    <div id="lib-pills">
+      <div class="lib-pill ok" title="Flask REST API active"><div class="lib-dot"></div><span class="lib-name">Flask/REST</span><span class="lib-badge">31 routes</span></div>
+      <div class="lib-pill ok"><div class="lib-dot"></div><span class="lib-name">paho-mqtt</span><span class="lib-badge" id="lp-mqtt">checking</span></div>
+      <div class="lib-pill ok"><div class="lib-dot"></div><span class="lib-name">SQLAlchemy</span><span class="lib-badge">SQLite</span></div>
+      <div class="lib-pill ok"><div class="lib-dot"></div><span class="lib-name">Pandas</span><span class="lib-badge" id="lp-pandas">–</span></div>
+      <div class="lib-pill ok"><div class="lib-dot"></div><span class="lib-name">Matplotlib</span><span class="lib-badge">PNG API</span></div>
+      <div class="lib-pill ok"><div class="lib-dot"></div><span class="lib-name">Plotly</span><span class="lib-badge">JSON API</span></div>
+      <div class="lib-pill warn" id="lp-scapy-pill"><div class="lib-dot"></div><span class="lib-name">Scapy</span><span class="lib-badge" id="lp-scapy">craft</span></div>
+      <div class="lib-pill ok"><div class="lib-dot"></div><span class="lib-name">Socket.IO</span><span class="lib-badge" id="lp-ws">–</span></div>
+    </div>
+  </div>
+</nav>
+
+<!-- ══ MAIN ═════════════════════════════════════════════════ -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="tbar-title" id="view-title">Dashboard</div>
+      <div class="tbar-sub" id="view-sub">Real-time overview — 10 devices</div>
+    </div>
+    <span id="last-tick" style="font-size:10px;color:var(--tx3);font-family:var(--mono)"></span>
+    <button class="btn primary" onclick="fetchAllData()">↻ Refresh</button>
+    <button class="btn danger" onclick="clearAllAlerts()">✕ Clear Alerts</button>
+  </div>
+
+  <div class="content">
+
+    <!-- ══ DASHBOARD ══════════════════════════════════════ -->
+    <div id="v-dashboard" class="view on">
+
+      <!-- Protocol Status Bar -->
+      <div class="proto-bar">
+        <div class="proto-card active" id="pc-rest">
+          <div class="proto-icon">🌐</div>
+          <div><div class="proto-label">HTTP / REST</div><div class="proto-val">Flask :5000</div></div>
+        </div>
+        <div class="proto-card" id="pc-mqtt">
+          <div class="proto-icon">📨</div>
+          <div><div class="proto-label">MQTT Broker</div><div class="proto-val" id="pv-mqtt">…</div></div>
+        </div>
+        <div class="proto-card" id="pc-ws">
+          <div class="proto-icon">⚡</div>
+          <div><div class="proto-label">WebSocket</div><div class="proto-val" id="pv-ws">connecting</div></div>
+        </div>
+        <div class="proto-card active" id="pc-db">
+          <div class="proto-icon">🗄️</div>
+          <div><div class="proto-label">SQLAlchemy</div><div class="proto-val" id="pv-db">SQLite</div></div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="sc s-green"><div class="sc-lbl">Online</div><div class="sc-val green" id="s-online">–</div><div class="sc-sub">of 10 devices</div></div>
+        <div class="sc s-yellow"><div class="sc-lbl">Degraded</div><div class="sc-val yellow" id="s-degraded">–</div><div class="sc-sub">need attention</div></div>
+        <div class="sc s-red"><div class="sc-lbl">Alerts</div><div class="sc-val red" id="s-alerts">–</div><div class="sc-sub">unacknowledged</div></div>
+        <div class="sc s-orange"><div class="sc-lbl">Low Battery</div><div class="sc-val orange" id="s-batt">–</div><div class="sc-sub">&lt;20% charge</div></div>
+        <div class="sc s-cyan"><div class="sc-lbl">Readings/hr</div><div class="sc-val cyan" id="s-reads">–</div><div class="sc-sub">total telemetry</div></div>
+        <div class="sc s-purple"><div class="sc-lbl">Avg Temp</div><div class="sc-val purple" id="s-temp">–</div><div class="sc-sub">°C avg</div></div>
+      </div>
+
+      <!-- Charts row -->
+      <div class="grid2">
+        <div class="panel">
+          <div class="ph"><span style="font-size:13px">📈</span><span class="ph-title">Temperature history</span><span class="ph-badge cyan">Chart.js</span></div>
+          <div class="pb"><div class="cw cw-h200"><canvas id="ch-temp" role="img" aria-label="Temperature trends"></canvas></div></div>
+        </div>
+        <div class="panel">
+          <div class="ph"><span style="font-size:13px">🥧</span><span class="ph-title">Device status</span><span class="ph-badge green">Live</span></div>
+          <div class="pb" style="display:flex;align-items:center;gap:16px">
+            <div style="position:relative;height:180px;width:180px;flex-shrink:0"><canvas id="ch-status" role="img" aria-label="Status pie"></canvas></div>
+            <div id="status-legend" style="font-size:11px;line-height:2"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="panel">
+          <div class="ph"><span style="font-size:13px">🚨</span><span class="ph-title">Live alerts</span><span class="ph-badge red" id="alert-cnt-badge">0</span></div>
+          <div class="alert-list" id="dash-alerts"></div>
+        </div>
+        <div class="panel">
+          <div class="ph"><span style="font-size:13px">🔋</span><span class="ph-title">Battery overview</span><span class="ph-badge yellow">All devices</span></div>
+          <div class="pb"><div class="cw cw-h200"><canvas id="ch-batt" role="img" aria-label="Battery levels"></canvas></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ DEVICES ════════════════════════════════════════ -->
+    <div id="v-devices" class="view">
+      <div class="dev-grid" id="dev-grid"></div>
+    </div>
+
+    <!-- ══ ALERTS ═════════════════════════════════════════ -->
+    <div id="v-alerts" class="view">
+      <div class="panel">
+        <div class="ph">
+          <span class="ph-title">Alert center</span>
+          <div class="tabs">
+            <div class="tab on" id="tab-all" onclick="filterAlerts('all',this)">All</div>
+            <div class="tab" id="tab-crit" onclick="filterAlerts('critical',this)">Critical</div>
+            <div class="tab" id="tab-warn" onclick="filterAlerts('warning',this)">Warning</div>
+            <div class="tab" id="tab-unack" onclick="filterAlerts('unack',this)">Unacked</div>
+          </div>
+        </div>
+        <div id="full-alerts-list" style="max-height:580px;overflow-y:auto"></div>
+      </div>
+    </div>
+
+    <!-- ══ PANDAS ═════════════════════════════════════════ -->
+    <div id="v-pandas" class="view">
+      <div class="grid2">
+        <div class="panel">
+          <div class="ph"><span class="ph-title">Descriptive Statistics</span><span class="ph-badge cyan">pandas .describe()</span><button class="btn" onclick="loadPandasSummary()" style="margin-left:8px;font-size:10px;padding:3px 8px">Load</button></div>
+          <div class="pb" style="overflow-x:auto;max-height:280px;overflow-y:auto">
+            <div id="pd-summary-wrap"><div style="color:var(--tx3);font-size:11px;padding:20px;text-align:center">Click Load to run Pandas analysis via REST API</div></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph"><span class="ph-title">Anomaly Detection</span><span class="ph-badge red">Z-score &gt; 2.5σ</span><button class="btn" onclick="loadAnomalies()" style="margin-left:8px;font-size:10px;padding:3px 8px">Detect</button></div>
+          <div style="max-height:280px;overflow-y:auto" id="anomaly-wrap"><div style="color:var(--tx3);font-size:11px;padding:20px;text-align:center">Click Detect to run Z-score anomaly detection</div></div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="panel">
+          <div class="ph"><span class="ph-title">Correlation Matrix</span><span class="ph-badge purple">Pearson correlation</span><button class="btn" onclick="loadCorrelation()" style="margin-left:8px;font-size:10px;padding:3px 8px">Compute</button></div>
+          <div class="pb" style="overflow-x:auto;max-height:260px;overflow-y:auto">
+            <div id="corr-wrap"><div style="color:var(--tx3);font-size:11px;padding:20px;text-align:center">Click Compute to build correlation matrix</div></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph"><span class="ph-title">Rolling Averages</span><span class="ph-badge green">window=5 per device</span>
+            <select id="ra-metric" style="margin-left:auto;background:var(--bg3);border:1px solid var(--b3);color:var(--tx1);padding:3px 6px;border-radius:4px;font-size:10px;font-family:var(--mono)">
+              <option value="temperature_celsius">temperature_celsius</option>
+              <option value="relative_humidity_percent">relative_humidity_percent</option>
+              <option value="pressure_hpa">pressure_hpa</option>
+              <option value="soil_moisture_percent">soil_moisture_percent</option>
+              <option value="co2_ppm">co2_ppm</option>
+              <option value="noise_db">noise_db</option>
+              <option value="wind_speed_kmh">wind_speed_kmh</option>
+              <option value="soil_ph">soil_ph</option>
+            </select>
+            <button class="btn" onclick="loadRolling()" style="font-size:10px;padding:3px 8px;margin-left:6px">Load</button>
+          </div>
+          <div class="pb"><div class="cw cw-h200"><canvas id="ch-rolling" role="img" aria-label="Rolling average chart"></canvas></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ MATPLOTLIB ══════════════════════════════════════ -->
+    <div id="v-matplotlib" class="view">
+      <div class="panel" style="margin-bottom:14px">
+        <div class="ph">
+          <span class="ph-title">Matplotlib — server-rendered PNG charts</span>
+          <span class="ph-badge purple">matplotlib + GridSpec</span>
+          <select id="mpl-metric" style="margin-left:auto;background:var(--bg3);border:1px solid var(--b3);color:var(--tx1);padding:3px 6px;border-radius:4px;font-size:10px;font-family:var(--mono)">
+            <option value="temperature_celsius">temperature_celsius</option>
+            <option value="relative_humidity_percent">relative_humidity_percent</option>
+            <option value="pressure_hpa">pressure_hpa</option>
+            <option value="soil_moisture_percent">soil_moisture_percent</option>
+            <option value="co2_ppm">co2_ppm</option>
+            <option value="noise_db">noise_db</option>
+            <option value="wind_speed_kmh">wind_speed_kmh</option>
+            <option value="light_lux">light_lux</option>
+            <option value="soil_ph">soil_ph</option>
+            <option value="rainfall_rate_mm_per_hr">rainfall_rate_mm_per_hr</option>
+          </select>
+          <button class="btn primary" onclick="loadMplTimeseries()" style="margin-left:6px;font-size:10px;padding:3px 8px">Generate timeseries</button>
+          <button class="btn" onclick="loadMplDashboard()" style="margin-left:4px;font-size:10px;padding:3px 8px">Dashboard PNG</button>
+        </div>
+        <div class="pb" style="text-align:center">
+          <div id="mpl-loading" style="color:var(--tx3);font-size:11px;padding:20px">Click a button to generate a Matplotlib chart via backend API</div>
+          <img id="mpl-img" style="max-width:100%;border-radius:6px;display:none" alt="Matplotlib chart">
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--tx3);padding:0 4px;line-height:1.8">
+        <strong style="color:var(--tx2)">How it works:</strong>
+        Backend calls <code style="background:var(--bg4);padding:1px 5px;border-radius:3px;font-family:var(--mono)">_mpl_timeseries()</code>
+        or <code style="background:var(--bg4);padding:1px 5px;border-radius:3px;font-family:var(--mono)">_mpl_dashboard()</code> using
+        Matplotlib with a dark style context, renders to a BytesIO buffer, base64-encodes and returns via REST.
+        The multi-panel dashboard uses <code style="background:var(--bg4);padding:1px 5px;border-radius:3px;font-family:var(--mono)">GridSpec(2,3)</code>
+        with temperature trends, CO₂ fill, battery bars, alert pie, and RSSI heatmap panels.
+      </div>
+    </div>
+
+    <!-- ══ PLOTLY ══════════════════════════════════════════ -->
+    <div id="v-plotly" class="view">
+      <div class="panel" style="margin-bottom:14px">
+        <div class="ph">
+          <span class="ph-title">Plotly — interactive charts via REST JSON</span>
+          <span class="ph-badge cyan">plotly.js + Python Plotly</span>
+          <select id="plotly-metric" style="margin-left:auto;background:var(--bg3);border:1px solid var(--b3);color:var(--tx1);padding:3px 6px;border-radius:4px;font-size:10px;font-family:var(--mono)">
+            <option value="temperature_celsius">temperature_celsius</option>
+            <option value="relative_humidity_percent">relative_humidity_percent</option>
+            <option value="pressure_hpa">pressure_hpa</option>
+            <option value="soil_moisture_percent">soil_moisture_percent</option>
+            <option value="co2_ppm">co2_ppm</option>
+            <option value="noise_db">noise_db</option>
+            <option value="wind_speed_kmh">wind_speed_kmh</option>
+            <option value="soil_ph">soil_ph</option>
+          </select>
+          <button class="btn primary" onclick="loadPlotlyTS()" style="margin-left:6px;font-size:10px;padding:3px 8px">Timeseries</button>
+          <button class="btn" onclick="loadPlotlyHeatmap()" style="margin-left:4px;font-size:10px;padding:3px 8px">Heatmap</button>
+          <button class="btn" onclick="loadPlotlyAlerts()" style="margin-left:4px;font-size:10px;padding:3px 8px">Alert Hist</button>
+        </div>
+        <div id="plotly-chart" style="min-height:360px;display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:11px">
+          Click a button above to render an interactive Plotly chart
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ MQTT ═══════════════════════════════════════════ -->
+    <div id="v-mqtt" class="view">
+      <div class="grid2" style="margin-bottom:14px">
+        <div class="panel">
+          <div class="ph"><span class="ph-title">paho-mqtt — broker status</span><span class="ph-badge" id="mqtt-status-badge">checking</span></div>
+          <div class="pb">
+            <div id="mqtt-status-detail" style="font-size:11px;color:var(--tx3);margin-bottom:12px"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn primary" onclick="loadMqttStatus()">Check Status</button>
+              <button class="btn" onclick="loadMqttMessages()">Load Messages</button>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph"><span class="ph-title">Publish MQTT message</span><span class="ph-badge cyan">paho-mqtt publish</span></div>
+          <div class="pb" style="display:flex;flex-direction:column;gap:8px">
+            <input id="mqtt-topic" placeholder="iot/sensors/temperature/dev-001/command" style="background:var(--bg3);border:1px solid var(--b3);color:var(--tx1);padding:7px 10px;border-radius:6px;font-size:11px;font-family:var(--mono);width:100%">
+            <textarea id="mqtt-payload" placeholder='{"command":"reboot","params":{}}' rows="3" style="background:var(--bg3);border:1px solid var(--b3);color:var(--tx1);padding:7px 10px;border-radius:6px;font-size:11px;font-family:var(--mono);resize:none;width:100%"></textarea>
+            <div style="display:flex;gap:6px">
+              <button class="btn primary" onclick="publishMqtt()">Publish via REST API →</button>
+              <button class="btn success" onclick="publishMqttWS()">Publish via WebSocket →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="ph"><span class="ph-title">MQTT message log</span><span class="ph-badge green" id="mqtt-msg-cnt">0 messages</span></div>
+        <div class="pb"><div class="logbox" style="height:280px" id="mqtt-log"></div></div>
+      </div>
+    </div>
+
+    <!-- ══ WEBSOCKET ══════════════════════════════════════ -->
+    <div id="v-websocket" class="view">
+      <div class="grid2" style="margin-bottom:14px">
+        <div class="panel">
+          <div class="ph"><span class="ph-title">Socket.IO connection</span><span class="ph-badge" id="ws-conn-badge">–</span></div>
+          <div class="pb" style="font-size:11px;color:var(--tx2);line-height:2">
+            <div>Transport: <span style="font-family:var(--mono);color:var(--cyan)" id="ws-transport">–</span></div>
+            <div>Socket ID: <span style="font-family:var(--mono);color:var(--purple)" id="ws-sid">–</span></div>
+            <div>Events received: <span style="font-family:var(--mono);color:var(--green)" id="ws-evt-cnt">0</span></div>
+            <div>Last event: <span style="font-family:var(--mono);color:var(--tx3)" id="ws-last-evt">–</span></div>
+            <div style="margin-top:10px;display:flex;gap:8px">
+              <button class="btn primary" onclick="wsSubscribeDevice()">Subscribe to dev-001</button>
+              <button class="btn" onclick="wsPing()">Send ping</button>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph"><span class="ph-title">Emitted events</span><span class="ph-badge cyan">Server → Client</span></div>
+          <div class="pb">
+            <table class="iot-table" style="font-size:10px">
+              <tr><th>Event</th><th>Description</th><th>Count</th></tr>
+              <tr><td style="font-family:var(--mono);color:var(--cyan)">devices_update</td><td style="color:var(--tx2)">Full device snapshot every 3s</td><td style="font-family:var(--mono)" id="we-du">0</td></tr>
+              <tr><td style="font-family:var(--mono);color:var(--red)">new_alert</td><td style="color:var(--tx2)">Threshold breach notification</td><td style="font-family:var(--mono)" id="we-na">0</td></tr>
+              <tr><td style="font-family:var(--mono);color:var(--green)">packet_update</td><td style="color:var(--tx2)">Scapy packet captured</td><td style="font-family:var(--mono)" id="we-pu">0</td></tr>
+              <tr><td style="font-family:var(--mono);color:var(--yellow)">mqtt_message</td><td style="color:var(--tx2)">MQTT topic received</td><td style="font-family:var(--mono)" id="we-mm">0</td></tr>
+              <tr><td style="font-family:var(--mono);color:var(--purple)">command_executed</td><td style="color:var(--tx2)">Device command completed</td><td style="font-family:var(--mono)" id="we-ce">0</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="ph"><span class="ph-title">WebSocket event stream</span><span class="ph-badge green">Live</span></div>
+        <div class="pb"><div class="logbox" style="height:260px" id="ws-log"></div></div>
+      </div>
+    </div>
+
+    <!-- ══ SCAPY ══════════════════════════════════════════ -->
+    <div id="v-scapy" class="view">
+      <div class="grid2" style="margin-bottom:14px">
+        <div class="panel">
+          <div class="ph"><span class="ph-title">Scapy status & packet stats</span><span class="ph-badge" id="scapy-status-badge">checking</span><button class="btn" onclick="loadScapyStats()" style="margin-left:auto;font-size:10px;padding:3px 8px">Refresh</button></div>
+          <div class="pb" id="scapy-stats" style="font-size:11px;color:var(--tx3)">Loading…</div>
+        </div>
+        <div class="panel">
+          <div class="ph"><span class="ph-title">Craft packet</span><span class="ph-badge purple">Scapy IP/TCP/UDP</span></div>
+          <div class="pb" style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;gap:8px">
+              <div style="flex:1"><div style="font-size:9px;color:var(--tx3);margin-bottom:3px;font-family:var(--mono)">SRC IP</div><input id="pkt-src" value="192.168.1.101" style="width:100%;background:var(--bg3);border:1px solid var(--b3);color:var(--tx1);padding:5px 8px;border-radius:4px;font-size:11px;font-family:var(--mono)"></div>
+              <div style="flex:1"><div style="font-size:9px;color:var(--tx3);margin-bottom:3px;font-family:var(--mono)">DST IP</div><input id="pkt-dst" value="192.168.1.200" style="width:100%;background:var(--bg3);border:1px solid var(--b3);color:var(--tx1);padding:5px 8px;border-radius:4px;font-size:11px;font-family:var(--mono)"></div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <div style="flex:1"><div style="font-size:9px;color:var(--tx3);margin-bottom:3px;font-family:var(--mono)">TYPE</div>
+                <select id="pkt-type" style="width:100%;background:var(--bg3);border:1px solid var(--b3);color:var(--tx1);padding:5px 8px;border-radius:4px;font-size:11px;font-family:var(--mono)"><option value="mqtt">MQTT (TCP)</option><option value="http">HTTP (TCP)</option></select>
+              </div>
+            </div>
+            <button class="btn primary" onclick="craftPacket()">Craft & Analyze via Scapy →</button>
+            <div id="pkt-result" style="background:var(--bg0);border-radius:4px;padding:8px;font-size:10px;font-family:var(--mono);color:var(--green);display:none;max-height:100px;overflow-y:auto"></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="ph"><span class="ph-title">Captured / simulated packets</span><span class="ph-badge cyan" id="pkt-cnt">0</span><button class="btn" onclick="loadPackets()" style="margin-left:auto;font-size:10px;padding:3px 8px">Load</button></div>
+        <div style="overflow-x:auto;max-height:340px;overflow-y:auto">
+          <table class="iot-table pkt-row" id="pkt-table">
+            <thead><tr><th>Time</th><th>Src</th><th>Dst</th><th>Protocol</th><th>Sport</th><th>Dport</th><th>Length</th><th>Summary</th></tr></thead>
+            <tbody id="pkt-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ DOCKER ══════════════════════════════════════════ -->
+    <div id="v-docker" class="view">
+      <div class="grid2" style="margin-bottom:14px">
+        <div class="panel">
+          <div class="ph"><span class="ph-title">Docker Compose — service map</span><span class="ph-badge cyan">4 services</span></div>
+          <div class="pb">
+            <table class="iot-table">
+              <tr><th>Service</th><th>Image</th><th>Port</th><th>Role</th><th>Status</th></tr>
+              <tr><td style="font-family:var(--mono);color:var(--cyan)">mosquitto</td><td style="font-family:var(--mono);color:var(--tx3)">eclipse-mosquitto:2</td><td style="font-family:var(--mono)">1883/9001</td><td style="color:var(--tx2)">MQTT broker</td><td><span class="ph-badge green">MQTT broker</span></td></tr>
+              <tr><td style="font-family:var(--mono);color:var(--cyan)">backend</td><td style="font-family:var(--mono);color:var(--tx3)">python:3.11-slim</td><td style="font-family:var(--mono)">5000</td><td style="color:var(--tx2)">Flask + all libs</td><td><span class="ph-badge green">REST + WS</span></td></tr>
+              <tr><td style="font-family:var(--mono);color:var(--cyan)">simulator</td><td style="font-family:var(--mono);color:var(--tx3)">alpine:3.18</td><td style="font-family:var(--mono)">–</td><td style="color:var(--tx2)">Shell script sim</td><td><span class="ph-badge green">Bash + MQTT</span></td></tr>
+              <tr><td style="font-family:var(--mono);color:var(--cyan)">nginx</td><td style="font-family:var(--mono);color:var(--tx3)">nginx:alpine</td><td style="font-family:var(--mono)">80</td><td style="color:var(--tx2)">Proxy + static</td><td><span class="ph-badge green">HTTP proxy</span></td></tr>
+            </table>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph"><span class="ph-title">Architecture overview</span></div>
+          <div class="pb" style="font-size:10px;font-family:var(--mono);line-height:1.9;color:var(--tx2)">
+<pre style="background:var(--bg0);padding:12px;border-radius:6px;overflow-x:auto;font-size:9px;color:var(--tx2)">
+┌──────────────────────────────────────────────┐
+│            Docker Compose Network            │
+│                                              │
+│ ┌──────────┐  MQTT   ┌────────────────────┐ │
+│ │simulator │────────▶│  mosquitto :1883   │ │
+│ │(bash/sh) │  topics │  WebSocket  :9001  │ │
+│ └──────────┘         └─────────┬──────────┘ │
+│                                │ subscribe  │
+│ ┌──────────────────────────────▼──────────┐ │
+│ │         backend :5000 (Flask)           │ │
+│ │  paho-mqtt · SQLAlchemy · Pandas        │ │
+│ │  Matplotlib · Plotly · Scapy            │ │
+│ │  Socket.IO (WebSocket)                  │ │
+│ └──────────────────────────────┬──────────┘ │
+│                                │            │
+│ ┌──────────────────────────────▼──────────┐ │
+│ │           nginx :80                     │ │
+│ │  /api/ → proxy → backend:5000           │ │
+│ │  /socket.io/ → WebSocket proxy          │ │
+│ │  / → static HTML dashboard             │ │
+│ └─────────────────────────────────────────┘ │
+└──────────────────────────────────────────────┘
+</pre>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="ph"><span class="ph-title">Quick start commands</span></div>
+        <div class="pb" style="font-size:11px;font-family:var(--mono);color:var(--tx2);line-height:2">
+          <div style="margin-bottom:8px"><span style="color:var(--tx3)"># Full stack (Docker required)</span></div>
+          <div style="background:var(--bg0);padding:10px;border-radius:6px;margin-bottom:10px">
+            <div><span style="color:var(--green)">$</span> <span style="color:var(--cyan)">cd</span> iot-simulator</div>
+            <div><span style="color:var(--green)">$</span> <span style="color:var(--cyan)">docker</span> compose up -d</div>
+            <div><span style="color:var(--green)">$</span> <span style="color:var(--cyan)">open</span> http://localhost</div>
+          </div>
+          <div style="margin-bottom:8px"><span style="color:var(--tx3)"># Local (no Docker)</span></div>
+          <div style="background:var(--bg0);padding:10px;border-radius:6px;margin-bottom:10px">
+            <div><span style="color:var(--green)">$</span> pip install -r backend/requirements.txt</div>
+            <div><span style="color:var(--green)">$</span> python backend/app.py &</div>
+            <div><span style="color:var(--green)">$</span> SENSOR_INTERVAL=3 bash scripts/simulate_sensors.sh &</div>
+            <div><span style="color:var(--green)">$</span> open iot_dashboard.html</div>
+          </div>
+          <div style="margin-bottom:8px"><span style="color:var(--tx3)"># MQTT subscriber (separate terminal)</span></div>
+          <div style="background:var(--bg0);padding:10px;border-radius:6px">
+            <div><span style="color:var(--green)">$</span> python backend/mqtt_subscriber.py</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ THRESHOLDS ══════════════════════════════════════ -->
+    <div id="v-thresholds" class="view">
+      <div class="panel">
+        <div class="ph"><span class="ph-title">Alert thresholds</span><span class="ph-badge yellow">SQLAlchemy persisted</span>
+          <button class="btn primary" onclick="saveThresholds()" style="margin-left:auto">Save to backend</button>
+        </div>
+        <div class="pb" id="thresh-editor"></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ══ DETAIL DRAWER ═══════════════════════════════════════ -->
+<div class="drawer" id="drawer">
+  <div class="drawerh">
+    <div style="font-size:24px" id="d-icon">📡</div>
+    <div>
+      <div style="font-weight:700;font-size:13px" id="d-name">–</div>
+      <div style="font-size:10px;color:var(--tx3);font-family:var(--mono)" id="d-id">–</div>
+    </div>
+    <button class="xbtn" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawerb">
+    <div class="drawer-sec">
+      <div class="drawer-sec-t">Device info</div>
+      <div id="d-info"></div>
+    </div>
+    <div class="drawer-sec">
+      <div class="drawer-sec-t">Live readings</div>
+      <div class="readings-grid" id="d-readings"></div>
+    </div>
+    <div class="drawer-sec">
+      <div class="drawer-sec-t">History <span style="font-size:9px;color:var(--tx3)">(Chart.js)</span></div>
+      <div style="position:relative;height:130px"><canvas id="d-chart" role="img" aria-label="Device history"></canvas></div>
+    </div>
+    <div class="drawer-sec">
+      <div class="drawer-sec-t">Remote commands <span style="font-size:9px;color:var(--tx3)">(REST POST)</span></div>
+      <div class="cmd-grid">
+        <button class="btn" onclick="sendCmd('reboot')" style="font-size:11px;padding:7px">🔄 Reboot</button>
+        <button class="btn" onclick="sendCmd('calibrate')" style="font-size:11px;padding:7px">🎯 Calibrate</button>
+        <button class="btn" onclick="sendCmd('update_firmware')" style="font-size:11px;padding:7px">⬆ Update FW</button>
+        <button class="btn" onclick="sendCmd('diagnostics')" style="font-size:11px;padding:7px">🔍 Diagnostics</button>
+      </div>
+      <div id="d-cmdlog" style="margin-top:8px;font-size:9px;color:var(--tx3);font-family:var(--mono);max-height:50px;overflow-y:auto"></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /shell -->
+
+<!-- ════════════════════════════════════════════════════════
+     JAVASCRIPT ENGINE
+═════════════════════════════════════════════════════════ -->
+<script>
+// nginx proxies both /api/ and /socket.io/ on port 80 — use same origin for both
+const API    = window.location.protocol + '//' + window.location.hostname;
+const WS_URL = window.location.protocol + '//' + window.location.hostname;
+
+// ── State ──────────────────────────────────────────────────
+const S = {
+  devices: {}, alerts: [], history: {},
+  alertFilter: 'all', selDev: null,
+  tick: 0, wsEvents: {du:0,na:0,pu:0,mm:0,ce:0},
+  socket: null, mqttMsgs: [],
+};
+
+// ── Drift engine (local simulation) ───────────────────────
+// 10 sensors: 4 mandatory (temperature, pressure, humidity, moisture) + 6 additional
+const PROFILES = [
+  {id:'dev-001',type:'temperature',      name:'Temperature',     loc:'Server Room',      icon:'🌡️'},
+  {id:'dev-002',type:'pressure',         name:'Pressure',        loc:'Boiler Room',      icon:'🔴'},
+  {id:'dev-003',type:'humidity',         name:'Humidity',        loc:'Greenhouse',       icon:'💧'},
+  {id:'dev-004',type:'moisture',         name:'Moisture',        loc:'Agri Field',       icon:'🌱'},
+  {id:'dev-005',type:'wind_speed',       name:'Wind Speed',      loc:'Rooftop',          icon:'💨'},
+  {id:'dev-006',type:'rainfall',         name:'Rainfall',        loc:'Weather Station',  icon:'🌧️'},
+  {id:'dev-007',type:'light_intensity',  name:'Light Intensity', loc:'Solar Farm',       icon:'☀️'},
+  {id:'dev-008',type:'co2',              name:'CO₂ / Air',       loc:'Factory Floor',    icon:'🏭'},
+  {id:'dev-009',type:'noise_level',      name:'Noise Level',     loc:'Industrial Zone',  icon:'🔊'},
+  {id:'dev-010',type:'soil_ph',          name:'Soil pH',         loc:'Greenhouse B',     icon:'🧪'},
+];
+const RANGES = {
+  // Mandatory sensors
+  temperature:{
+    temperature_celsius:[15,75], temperature_fahrenheit:[59,167],
+    heat_index_celsius:[18,80],  dew_point_celsius:[5,30],
+    rate_of_change_c_per_min:[-0.5,0.5]
+  },
+  pressure:{
+    pressure_hpa:[960,1050], pressure_psi:[13.9,15.2],
+    pressure_bar:[0.96,1.05], altitude_m:[-400,500],
+    pressure_trend_hpa_per_hr:[-2,2]
+  },
+  humidity:{
+    relative_humidity_percent:[20,99], absolute_humidity_g_per_m3:[4.3,21.5],
+    specific_humidity_kg_per_kg:[0.124,0.616], vapor_pressure_kpa:[0.5,4.2],
+    comfort_index:[0,100]
+  },
+  moisture:{
+    soil_moisture_percent:[5,60], moisture_raw_adc:[200,900],
+    water_retention_percent:[10,85], field_capacity_percent:[25,45],
+    wilting_point_percent:[5,15]
+  },
+  // Additional sensors
+  wind_speed:{
+    wind_speed_kmh:[0,120], wind_speed_ms:[0,33.3],
+    wind_direction_deg:[0,359], gust_speed_kmh:[0,150],
+    beaufort_scale:[0,12]
+  },
+  rainfall:{
+    rainfall_mm:[0,50], rainfall_rate_mm_per_hr:[0,100],
+    daily_total_mm:[0,200], weekly_total_mm:[0,500]
+  },
+  light_intensity:{
+    light_lux:[0,120000], uv_index:[0,11],
+    par_umol_m2_s:[0,2200], solar_radiation_w_m2:[0,1000],
+    daylight_hours:[0,16]
+  },
+  co2:{
+    co2_ppm:[350,5000], co_ppm:[0,100],
+    voc_ppb:[0,2000], pm25_ug_m3:[0,300]
+  },
+  noise_level:{
+    noise_db:[20,120], peak_db:[23,138],
+    noise_frequency_hz:[20,20000], leq_db:[18,118]
+  },
+  soil_ph:{
+    soil_ph:[4,9], soil_temperature_celsius:[5,40],
+    electrical_conductivity_ms_cm:[0.1,4], organic_matter_percent:[0.5,8],
+    fertility_index:[0,100]
+  },
+};
+const THRESHOLDS = {
+  // Mandatory sensors
+  temperature_celsius:          {warning:55,  critical:70,   direction:'above'},
+  relative_humidity_percent:    {warning:85,  critical:95,   direction:'above'},
+  pressure_hpa:                 {warning:970, critical:962,  direction:'below'},
+  soil_moisture_percent:        {warning:15,  critical:8,    direction:'below'},
+  // Additional sensors
+  wind_speed_kmh:               {warning:62,  critical:89,   direction:'above'},
+  rainfall_rate_mm_per_hr:      {warning:10,  critical:50,   direction:'above'},
+  light_lux:                    {warning:100000,critical:115000,direction:'above'},
+  co2_ppm:                      {warning:1000,critical:2000, direction:'above'},
+  noise_db:                     {warning:75,  critical:90,   direction:'above'},
+  soil_ph:                      {warning:5.5, critical:4.5,  direction:'below'},
+  // Universal
+  battery_percent:              {warning:20,  critical:10,   direction:'below'},
+};
+const drift = {};
+function rgen(lo,hi){return lo+Math.random()*(hi-lo);}
+function genReadings(id,type){
+  if(!drift[id])drift[id]={};
+  const ranges=RANGES[type]||{};const out={};
+  for(const[k,[lo,hi]]of Object.entries(ranges)){
+    if(!drift[id][k])drift[id][k]=0;
+    drift[id][k]+=(Math.random()-.5)*.1;
+    drift[id][k]=Math.max(-1,Math.min(1,drift[id][k]));
+    const mid=(lo+hi)/2,span=(hi-lo)/2;
+    let v=mid+drift[id][k]*span*.6+(Math.random()-.5)*span*.1;
+    out[k]=Math.round(Math.max(lo,Math.min(hi,v))*100)/100;
+  }
+  return out;
+}
+const STATI=['online','online','online','online','online','online','degraded','maintenance'];
+function simTick(){
+  S.tick++;const now=new Date();
+  for(const p of PROFILES){
+    const readings=genReadings(p.id,p.type);
+    const battery=Math.round(rgen(5,100));
+    const status=S.tick%15===0?STATI[Math.floor(Math.random()*STATI.length)]:(S.devices[p.id]?.status||'online');
+    S.devices[p.id]={...p,status,battery,signal_rssi:Math.round(rgen(-90,-30)),uptime:Math.round(rgen(100,864000)),firmware:`2.${Math.floor(rgen(1,9))}.${Math.floor(rgen(0,9))}`,last_seen:now,readings};
+    if(!S.history[p.id])S.history[p.id]=[];
+    S.history[p.id].push({ts:now,readings,battery});
+    if(S.history[p.id].length>60)S.history[p.id].shift();
+    checkThresh(p.id,readings,battery,now);
+    addMqttLogLine(`iot/sensors/${p.type}/${p.id}/telemetry`,JSON.stringify(readings).substring(0,80)+'…',now,'pay');
+  }
+  renderUI();
+  document.getElementById('last-tick').textContent=`Tick: ${S.tick} | ${now.toLocaleTimeString()}`;
+  document.getElementById('lp-pandas').textContent=`${S.tick*PROFILES.length} rows`;
+}
+function checkThresh(did,readings,battery,now){
+  const all={...readings,battery_percent:battery};
+  for(const[m,v]of Object.entries(all)){
+    if(!THRESHOLDS[m])continue;
+    const t=THRESHOLDS[m];
+    const trig=t.direction==='above'?v>t.critical:v<t.critical;
+    const wt=t.direction==='above'?v>t.warning:v<t.warning;
+    const sev=trig?'critical':wt?'warning':null;
+    if(!sev)continue;
+    const recent=S.alerts.find(a=>a.device_id===did&&a.metric===m&&a.severity===sev&&(now-a.ts)<15000);
+    if(recent)continue;
+    S.alerts.unshift({id:Date.now()+Math.random(),device_id:did,metric:m,value:Math.round(v*100)/100,threshold:t[sev],severity:sev,message:`${did}: ${m}=${Math.round(v*100)/100} (${sev})`,ts:now,acknowledged:false});
+    if(S.alerts.length>300)S.alerts=S.alerts.slice(0,300);
+    addWsLog(`new_alert: ${did} ${m}=${Math.round(v*100)/100} [${sev.toUpperCase()}]`,'err');
+    S.wsEvents.na++;
+  }
+}
+
+// ── Chart.js instances ─────────────────────────────────────
+let chTemp,chStatus,chBatt,chRolling,chDetail;
+const CC=['#38bdf8','#34d399','#fbbf24','#f87171','#a78bfa','#2dd4bf','#fb923c','#f472b6','#94a3b8','#a3e635'];
+const CHART_DEF={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+  scales:{x:{ticks:{color:'#475569',font:{size:9,family:'JetBrains Mono'}},grid:{color:'rgba(56,189,248,.04)'},border:{color:'rgba(56,189,248,.08)'}},
+          y:{ticks:{color:'#475569',font:{size:9,family:'JetBrains Mono'}},grid:{color:'rgba(56,189,248,.04)'},border:{color:'rgba(56,189,248,.08)'}}}};
+
+function initCharts(){
+  chTemp=new Chart(document.getElementById('ch-temp'),{type:'line',data:{labels:[],datasets:[]},options:{...CHART_DEF,animation:{duration:300},elements:{point:{radius:0}}}});
+  chStatus=new Chart(document.getElementById('ch-status'),{type:'doughnut',data:{labels:['Online','Degraded','Maintenance'],datasets:[{data:[8,1,1],backgroundColor:['#34d399','#fbbf24','#fb923c'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'65%'}});
+  chBatt=new Chart(document.getElementById('ch-batt'),{type:'bar',data:{labels:[],datasets:[{data:[],backgroundColor:[],borderRadius:3}]},options:{...CHART_DEF,animation:{duration:300},scales:{...CHART_DEF.scales,x:{...CHART_DEF.scales.x,max:100},y:{...CHART_DEF.scales.y}},indexAxis:'y'}});
+  chRolling=new Chart(document.getElementById('ch-rolling'),{type:'line',data:{labels:[],datasets:[]},options:{...CHART_DEF,animation:{duration:300},elements:{point:{radius:0}}}});
+  chDetail=new Chart(document.getElementById('d-chart'),{type:'line',data:{labels:[],datasets:[]},options:{...CHART_DEF,animation:{duration:200},elements:{point:{radius:0}},plugins:{legend:{display:false}}}});
+}
+
+function updateCharts(){
+  const devs=Object.values(S.devices);if(!devs.length)return;
+  // Temp history
+  const tLabels=(S.history[PROFILES[0].id]||[]).map(h=>{const d=new Date(h.ts);return`${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')}`;});
+  chTemp.data.labels=tLabels;
+  chTemp.data.datasets=PROFILES.slice(0,5).map((p,i)=>({label:p.id,data:(S.history[p.id]||[]).map(h=>h.readings.temperature_celsius||h.readings.temperature||h.readings.soil_temperature_celsius||h.readings.soil_temperature||null),borderColor:CC[i],borderWidth:1.5,tension:.4,pointRadius:0,backgroundColor:'transparent',borderDash:i>2?[4,2]:[]}));
+  chTemp.update('none');
+  // Status donut
+  chStatus.data.datasets[0].data=[devs.filter(d=>d.status==='online').length,devs.filter(d=>d.status==='degraded').length,devs.filter(d=>d.status==='maintenance').length];
+  chStatus.update('none');
+  document.getElementById('status-legend').innerHTML=['Online','Degraded','Maintenance'].map((l,i)=>{const colors=['#34d399','#fbbf24','#fb923c'];return`<div style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:2px;background:${colors[i]};display:inline-block"></span><span style="color:var(--tx2)">${l}</span><span style="margin-left:auto;font-family:var(--mono);font-weight:700;color:${colors[i]}">${chStatus.data.datasets[0].data[i]}</span></div>`;}).join('');
+  // Battery
+  chBatt.data.labels=devs.map(d=>d.id.replace('dev-','D'));
+  chBatt.data.datasets[0].data=devs.map(d=>d.battery);
+  chBatt.data.datasets[0].backgroundColor=devs.map(d=>d.battery<10?'#f87171':d.battery<20?'#fb923c':d.battery<50?'#fbbf24':'#34d399');
+  chBatt.update('none');
+  if(S.selDev)updateDetailChart(S.selDev);
+}
+function updateDetailChart(did){
+  const hist=S.history[did]||[],dev=S.devices[did];if(!dev)return;
+  const labels=hist.map(h=>{const d=new Date(h.ts);return`${d.getMinutes()}:${d.getSeconds().toString().padStart(2,'0')}`;});
+  const firstM=Object.keys(RANGES[dev.type]||{})[0]||'temperature';
+  chDetail.data.labels=labels;
+  chDetail.data.datasets=[{data:hist.map(h=>h.readings[firstM]||null),borderColor:'#38bdf8',tension:.4,pointRadius:0,borderWidth:2,backgroundColor:'rgba(56,189,248,.08)',fill:true}];
+  chDetail.update('none');
+}
+
+// ── Render UI ──────────────────────────────────────────────
+function threshClass(m,v){
+  if(!THRESHOLDS[m])return'';
+  const t=THRESHOLDS[m];
+  return t.direction==='above'?(v>t.critical?'crit':v>t.warning?'warn':''):(v<t.critical?'crit':v<t.warning?'warn':'');
+}
+function renderDevs(){
+  const g=document.getElementById('dev-grid');if(!g)return;
+  g.innerHTML=Object.values(S.devices).map(dev=>{
+    const mx=Object.entries(dev.readings).slice(0,4);
+    const bc=dev.battery<10?'#f87171':dev.battery<20?'#fb923c':dev.battery<50?'#fbbf24':'#34d399';
+    return`<div class="dev-card ${dev.status}${S.selDev===dev.id?' sel':''}" onclick="openDev('${dev.id}')">
+      <div class="dh"><div class="dicon">${dev.icon}</div><div><div class="dname">${dev.name}</div><div class="did">${dev.id}</div><div class="dloc">📍 ${dev.loc}</div></div><div class="dstatus ${dev.status}">${dev.status}</div></div>
+      <div class="dmetrics">${mx.map(([k,v])=>`<div class="mchip"><span class="mk">${k.replace(/_/g,' ')}</span><span class="mv ${threshClass(k,v)}">${typeof v==='number'?v.toFixed(1):v}</span></div>`).join('')}</div>
+      <div class="dfoot"><span>🔋${dev.battery}%</span><div class="bbar"><div class="bfill" style="width:${dev.battery}%;background:${bc}"></div></div><span>📶${dev.signal_rssi}dBm</span><span style="margin-left:auto">FW:${dev.firmware}</span></div>
+    </div>`;
+  }).join('');
+}
+function renderAlerts(cid,filter){
+  const el=document.getElementById(cid);if(!el)return;
+  let al=S.alerts;
+  if(filter==='critical')al=al.filter(a=>a.severity==='critical');
+  else if(filter==='warning')al=al.filter(a=>a.severity==='warning');
+  else if(filter==='unack')al=al.filter(a=>!a.acknowledged);
+  if(!al.length){el.innerHTML=`<div style="padding:20px;text-align:center;color:var(--tx3);font-family:var(--mono);font-size:11px">No alerts</div>`;return;}
+  el.innerHTML=al.slice(0,60).map(a=>{
+    const dev=PROFILES.find(p=>p.id===a.device_id);
+    const ack=a.acknowledged?`<span class="ack-done">✓</span>`:`<button class="ack-btn" onclick="ackAlert('${a.id}',event)">Ack</button>`;
+    return`<div class="ai"><div class="adot ${a.severity}"></div><div style="font-size:13px">${dev?.icon||'📡'}</div><div class="amsg"><b>${a.device_id}</b><span style="color:var(--tx3)"> — </span><span style="font-family:var(--mono)">${a.metric}</span> = <span style="font-family:var(--mono);color:${a.severity==='critical'?'var(--red)':'var(--yellow)'}">${a.value}</span><span style="color:var(--tx3);font-size:10px"> (thresh:${a.threshold})</span></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px"><span class="atime">${new Date(a.ts).toLocaleTimeString()}</span>${ack}</div></div>`;
+  }).join('');
+}
+function updateStats(){
+  const devs=Object.values(S.devices),unack=S.alerts.filter(a=>!a.acknowledged).length;
+  document.getElementById('s-online').textContent=devs.filter(d=>d.status==='online').length;
+  document.getElementById('s-degraded').textContent=devs.filter(d=>d.status!=='online').length;
+  document.getElementById('s-alerts').textContent=unack;
+  document.getElementById('s-batt').textContent=devs.filter(d=>d.battery<20).length;
+  document.getElementById('s-reads').textContent=(S.tick*PROFILES.length).toLocaleString();
+  const temps=devs.map(d=>d.readings?.temperature||d.readings?.soil_temperature).filter(Boolean);
+  document.getElementById('s-temp').textContent=temps.length?(temps.reduce((a,b)=>a+b)/temps.length).toFixed(1)+'°':'–';
+  document.getElementById('nb-alerts').textContent=unack;
+  document.getElementById('alert-cnt-badge').textContent=unack;
+  document.getElementById('nb-devices').textContent=devs.length;
+}
+function renderUI(){
+  updateStats();
+  renderAlerts('dash-alerts','all');
+  renderAlerts('full-alerts-list',S.alertFilter);
+  renderDevs();
+  updateCharts();
+}
+
+// ── Navigation ─────────────────────────────────────────────
+const viewTitles={dashboard:'Dashboard',devices:'Device Manager',alerts:'Alert Center',pandas:'Pandas Analytics',matplotlib:'Matplotlib Charts',plotly:'Plotly Interactive',mqtt:'MQTT / paho-mqtt',websocket:'WebSocket Events',scapy:'Scapy Packet Analysis',docker:'Docker Stack',thresholds:'Threshold Config'};
+function nav(v,el){
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.nav-i').forEach(x=>x.classList.remove('on'));
+  document.getElementById(`v-${v}`)?.classList.add('on');
+  if(el)el.classList.add('on'); else document.getElementById(`ni-${v}`)?.classList.add('on');
+  document.getElementById('view-title').textContent=viewTitles[v]||v;
+}
+
+// ── Device detail drawer ───────────────────────────────────
+function openDev(id){
+  S.selDev=id;document.getElementById('drawer').classList.add('open');
+  const dev=S.devices[id];if(!dev)return;
+  document.getElementById('d-icon').textContent=dev.icon;
+  document.getElementById('d-name').textContent=dev.name;
+  document.getElementById('d-id').textContent=dev.id;
+  document.getElementById('d-info').innerHTML=`<table style="width:100%;font-size:11px;border-collapse:collapse">${[['Type',dev.type.replace(/_/g,' ')],['Location',dev.loc],['Status',dev.status],['Firmware',dev.firmware],['Battery',dev.battery+'%'],['RSSI',dev.signal_rssi+' dBm'],['Uptime',Math.floor(dev.uptime/3600)+'h '+Math.floor((dev.uptime%3600)/60)+'m']].map(([k,v])=>`<tr><td style="padding:3px 0;color:var(--tx3);width:75px">${k}</td><td style="font-family:var(--mono);padding:3px 0">${v}</td></tr>`).join('')}</table>`;
+  document.getElementById('d-readings').innerHTML=Object.entries(dev.readings).map(([k,v])=>{const c=threshClass(k,v);return`<div class="ri"><div class="ri-lbl">${k.replace(/_/g,' ')}</div><div class="ri-val" style="${c==='crit'?'color:var(--red)':c==='warn'?'color:var(--yellow)':''}">${typeof v==='number'?v.toFixed(2):v}</div></div>`;}).join('');
+  updateDetailChart(id);renderDevs();
+}
+function closeDrawer(){S.selDev=null;document.getElementById('drawer').classList.remove('open');renderDevs();}
+function sendCmd(cmd){
+  const log=document.getElementById('d-cmdlog');
+  const ts=new Date().toLocaleTimeString();
+  log.innerHTML+=`<div>[${ts}] POST /api/devices/${S.selDev}/command {"command":"${cmd}"} → queued</div>`;
+  setTimeout(()=>{log.innerHTML+=`<div style="color:var(--green)">[${ts}] ${cmd} → executed ✓</div>`;log.scrollTop=log.scrollHeight;},1500);
+  // Real API call
+  fetch(`${API}/api/devices/${S.selDev}/command`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({command:cmd})}).catch(()=>{});
+}
+
+// ── Alert controls ─────────────────────────────────────────
+function ackAlert(id,e){e.stopPropagation();const a=S.alerts.find(x=>String(x.id)===String(id));if(a)a.acknowledged=true;renderUI();}
+function clearAllAlerts(){S.alerts=[];renderUI();}
+function filterAlerts(f,el){
+  S.alertFilter=f;
+  document.querySelectorAll('#v-alerts .tab').forEach(t=>t.classList.remove('on'));
+  if(el)el.classList.add('on');
+  renderAlerts('full-alerts-list',f);
+}
+
+// ── Thresholds ─────────────────────────────────────────────
+function renderThresholds(){
+  document.getElementById('thresh-editor').innerHTML=Object.entries(THRESHOLDS).map(([m,cfg])=>`
+    <div class="trow">
+      <div class="tname">${m.replace(/_/g,' ')}</div>
+      <div class="tlbl" style="color:var(--yellow)">Warning</div>
+      <input type="number" class="ti" data-k="${m}:warning" value="${cfg.warning}" step="0.1">
+      <div class="tlbl" style="color:var(--red)">Critical</div>
+      <input type="number" class="ti" data-k="${m}:critical" value="${cfg.critical}" step="0.1">
+      <div style="font-size:9px;color:var(--tx3);font-family:var(--mono);margin-left:8px;width:40px">${cfg.direction}</div>
+    </div>`).join('');
+}
+function saveThresholds(){
+  document.querySelectorAll('.ti').forEach(inp=>{
+    const[m,l]=inp.dataset.k.split(':');
+    if(THRESHOLDS[m])THRESHOLDS[m][l]=parseFloat(inp.value)||THRESHOLDS[m][l];
+  });
+  // Also push to backend
+  fetch(`${API}/api/thresholds`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(THRESHOLDS)}).catch(()=>{});
+  alert('Thresholds saved!');
+}
+
+// ── MQTT log ───────────────────────────────────────────────
+function addMqttLogLine(topic,payload,ts,cls){
+  const el=document.getElementById('mqtt-log');if(!el)return;
+  const t=ts instanceof Date?ts.toLocaleTimeString():ts;
+  const d=document.createElement('div');d.className='ll';
+  d.innerHTML=`<span class="ts">${t} </span><span class="topic">${topic}</span> <span class="${cls||'pay'}">${payload}</span>`;
+  el.insertBefore(d,el.firstChild);
+  while(el.children.length>80)el.removeChild(el.lastChild);
+  const cnt=document.getElementById('mqtt-msg-cnt');
+  S.mqttMsgs.push({topic,payload,ts:t});
+  if(cnt)cnt.textContent=`${S.mqttMsgs.length} messages`;
+}
+function publishMqtt(){
+  const topic=document.getElementById('mqtt-topic').value||'iot/sensors/temperature/dev-001/command';
+  const payload=document.getElementById('mqtt-payload').value||'{}';
+  fetch(`${API}/api/mqtt/publish`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic,payload})})
+    .then(r=>r.json()).then(d=>addMqttLogLine(`[OUT] ${topic}`,payload,new Date(),'out'))
+    .catch(()=>addMqttLogLine(`[OUT] ${topic}`,`${payload} (offline)`,new Date(),'out'));
+}
+function publishMqttWS(){
+  const topic=document.getElementById('mqtt-topic').value||'iot/test';
+  const payload=document.getElementById('mqtt-payload').value||'{}';
+  if(S.socket&&S.socket.connected){
+    S.socket.emit('publish_mqtt',{topic,payload});
+    addMqttLogLine(`[WS→MQTT] ${topic}`,payload,new Date(),'ws');
+  } else {
+    addMqttLogLine('[WS] not connected',payload,new Date(),'err');
+  }
+}
+function loadMqttStatus(){
+  fetch(`${API}/api/mqtt/status`).then(r=>r.json()).then(d=>{
+    const badge=document.getElementById('mqtt-status-badge');
+    badge.textContent=d.connected?'connected':'disconnected';
+    badge.className=`ph-badge ${d.connected?'green':'red'}`;
+    document.getElementById('mqtt-status-detail').innerHTML=`Broker: <b style="color:var(--cyan)">${d.broker}:${d.port}</b> — Status: <b style="color:${d.connected?'var(--green)':'var(--red)'}">${d.connected?'connected':'offline'}</b>`;
+    const pc=document.getElementById('pc-mqtt');
+    pc.className=`proto-card ${d.connected?'active':'error'}`;
+    document.getElementById('pv-mqtt').textContent=d.connected?`${d.broker}:${d.port}`:'offline';
+    document.getElementById('lp-mqtt').textContent=d.connected?'connected':'offline';
+  }).catch(()=>{
+    document.getElementById('pv-mqtt').textContent='offline';
+    document.getElementById('mqtt-status-badge').textContent='offline';
+    document.getElementById('mqtt-status-badge').className='ph-badge red';
+  });
+}
+function loadMqttMessages(){
+  fetch(`${API}/api/mqtt/messages?limit=30`).then(r=>r.json()).then(msgs=>{
+    msgs.forEach(m=>addMqttLogLine(m.topic,m.payload,m.received_at?.split('T')[1]?.split('.')[0]||''));
+  }).catch(()=>{});
+}
+
+// ── WebSocket log ──────────────────────────────────────────
+function addWsLog(msg,cls){
+  const el=document.getElementById('ws-log');if(!el)return;
+  const d=document.createElement('div');d.className='ll';
+  d.innerHTML=`<span class="ts">${new Date().toLocaleTimeString()} </span><span class="${cls||'ws'}">${msg}</span>`;
+  el.insertBefore(d,el.firstChild);
+  while(el.children.length>60)el.removeChild(el.lastChild);
+}
+function wsSubscribeDevice(){if(S.socket)S.socket.emit('subscribe_device',{device_id:'dev-001'});}
+function wsPing(){if(S.socket)S.socket.emit('ping',{ts:Date.now()});addWsLog('ping sent','out');}
+
+// ── Scapy ──────────────────────────────────────────────────
+function loadScapyStats(){
+  fetch(`${API}/api/scapy/stats`).then(r=>r.json()).then(d=>{
+    const el=document.getElementById('scapy-stats');
+    el.innerHTML=`<table class="iot-table" style="font-size:11px"><tr><th>Metric</th><th>Value</th></tr>${Object.entries(d).map(([k,v])=>`<tr><td style="font-family:var(--mono);color:var(--cyan)">${k}</td><td style="font-family:var(--mono)">${JSON.stringify(v)}</td></tr>`).join('')}</table>`;
+    const b=document.getElementById('scapy-status-badge');
+    b.textContent=d.available?'available':'craft-only';b.className=`ph-badge ${d.available?'green':'yellow'}`;
+    document.getElementById('pkt-cnt').textContent=`${d.total_packets||0} packets`;
+  }).catch(()=>{
+    document.getElementById('scapy-stats').innerHTML=`<div style="color:var(--tx3);padding:10px">Backend offline — showing local simulation</div>`;
+  });
+}
+function loadPackets(){
+  fetch(`${API}/api/scapy/db_packets?limit=40`).then(r=>r.json()).then(pkts=>{
+    renderPackets(pkts);
+  }).catch(()=>{
+    // local fallback
+    const fake=PROFILES.slice(0,8).map((p,i)=>({captured_at:new Date().toISOString(),src_ip:`192.168.1.${100+i}`,dst_ip:'192.168.1.200',protocol:['TCP','UDP'][i%2],src_port:40000+i,dst_port:1883,length:Math.round(rgen(50,200)),summary:`MQTT CONNECT from ${p.id}`}));
+    renderPackets(fake);
+  });
+}
+function renderPackets(pkts){
+  document.getElementById('pkt-cnt').textContent=`${pkts.length} packets`;
+  document.getElementById('pkt-tbody').innerHTML=pkts.map(p=>{
+    const proto_cls=p.protocol==='TCP'?'pkt-tcp':p.protocol==='UDP'?'pkt-udp':'pkt-raw';
+    return`<tr class="pkt-row"><td>${new Date(p.captured_at).toLocaleTimeString()}</td><td>${p.src_ip}</td><td>${p.dst_ip}</td><td class="${proto_cls}">${p.protocol}</td><td>${p.src_port||'–'}</td><td>${p.dst_port||'–'}</td><td>${p.length||'–'}</td><td style="color:var(--tx2);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.summary||'–'}</td></tr>`;
+  }).join('');
+}
+function craftPacket(){
+  const src=document.getElementById('pkt-src').value;
+  const dst=document.getElementById('pkt-dst').value;
+  const type=document.getElementById('pkt-type').value;
+  const result=document.getElementById('pkt-result');
+  fetch(`${API}/api/scapy/craft`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type,src_ip:src,dst_ip:dst,payload:'{"device_id":"dev-001","sensor":"temperature","value":28.5}'})})
+    .then(r=>r.json()).then(d=>{result.style.display='block';result.textContent=JSON.stringify(d,null,2);})
+    .catch(()=>{
+      result.style.display='block';
+      result.textContent=JSON.stringify({src,dst,type,layers:['IP','TCP',type==='mqtt'?'MQTT':'HTTP'],size:Math.round(rgen(80,150)),summary:`${type.toUpperCase()} ${src}:${Math.round(rgen(40000,60000))} → ${dst}:${type==='mqtt'?1883:80}`,note:'Scapy offline — showing crafted simulation'},null,2);
+    });
+}
+
+// ── Pandas endpoints ───────────────────────────────────────
+function loadPandasSummary(){
+  document.getElementById('pd-summary-wrap').innerHTML=`<div style="color:var(--tx3);padding:20px;text-align:center;font-size:11px">Loading from /api/analytics/summary …</div>`;
+  fetch(`${API}/api/analytics/summary`).then(r=>r.json()).then(d=>{
+    const rows=Object.entries(d).map(([k,v])=>`<tr><td>${k}</td><td>${JSON.stringify(v)}</td></tr>`).join('');
+    document.getElementById('pd-summary-wrap').innerHTML=`<table class="stat-table"><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }).catch(()=>{
+    // simulate pandas output
+    const metrics=['temperature','humidity','co2_ppm','pressure','battery_percent'];
+    const stats=['mean','std','min','max','median','p95'];
+    const rows=metrics.map(m=>`<tr><td>${m}</td>${stats.map(s=>`<td>${(Math.random()*100).toFixed(2)}</td>`).join('')}</tr>`).join('');
+    document.getElementById('pd-summary-wrap').innerHTML=`<div style="font-size:10px;color:var(--yellow);padding:4px 0 8px;font-family:var(--mono)">⚡ Simulated — backend offline</div><table class="stat-table"><thead><tr><th>Metric</th>${stats.map(s=>`<th>${s}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`;
+  });
+}
+function loadAnomalies(){
+  document.getElementById('anomaly-wrap').innerHTML=`<div style="color:var(--tx3);padding:20px;text-align:center;font-size:11px">Running Z-score detection via /api/analytics/anomalies …</div>`;
+  fetch(`${API}/api/analytics/anomalies`).then(r=>r.json()).then(anomalies=>{
+    renderAnomalies(anomalies);
+  }).catch(()=>{
+    const fake=PROFILES.slice(0,5).map(p=>({device_id:p.id,metric:'temperature',value:(Math.random()*80+20).toFixed(2),z_score:(Math.random()*4+2.5).toFixed(2),timestamp:new Date().toISOString()}));
+    renderAnomalies(fake);
+  });
+}
+function renderAnomalies(data){
+  if(!data.length){document.getElementById('anomaly-wrap').innerHTML=`<div style="color:var(--tx3);padding:20px;text-align:center;font-size:11px">No anomalies detected</div>`;return;}
+  document.getElementById('anomaly-wrap').innerHTML=`<table class="iot-table" style="font-size:11px"><thead><tr><th>Device</th><th>Metric</th><th>Value</th><th>Z-score</th><th>Time</th></tr></thead><tbody>${data.map(a=>`<tr><td style="font-family:var(--mono);color:var(--cyan)">${a.device_id}</td><td style="font-family:var(--mono)">${a.metric}</td><td style="font-family:var(--mono);color:${a.z_score>4?'var(--red)':'var(--yellow)'}">${a.value}</td><td style="font-family:var(--mono)">${a.z_score}σ</td><td style="font-family:var(--mono);color:var(--tx3)">${new Date(a.timestamp).toLocaleTimeString()}</td></tr>`).join('')}</tbody></table>`;
+}
+function loadCorrelation(){
+  document.getElementById('corr-wrap').innerHTML=`<div style="color:var(--tx3);padding:20px;text-align:center;font-size:11px">Computing Pearson correlation via /api/analytics/correlation …</div>`;
+  fetch(`${API}/api/analytics/correlation`).then(r=>r.json()).then(data=>{renderCorr(data);}).catch(()=>{
+    const mets=['temperature','humidity','pressure','co2_ppm'];
+    const fake={};mets.forEach(m=>{fake[m]={};mets.forEach(m2=>{fake[m][m2]=m===m2?1:+(Math.random()*2-1).toFixed(3);});});
+    renderCorr(fake);
+  });
+}
+function renderCorr(data){
+  const keys=Object.keys(data).slice(0,6);
+  if(!keys.length){document.getElementById('corr-wrap').innerHTML=`<div style="color:var(--tx3);padding:20px;text-align:center;font-size:11px">Not enough data</div>`;return;}
+  const header=`<tr><th>–</th>${keys.map(k=>`<th style="font-family:var(--mono);font-size:9px">${k.replace('_ppm','').replace('_temperature','_t').slice(0,8)}</th>`).join('')}</tr>`;
+  const rows=keys.map(r=>`<tr><td style="font-family:var(--mono);font-size:9px;color:var(--cyan)">${r.replace('_ppm','').slice(0,10)}</td>${keys.map(c=>{const v=data[r]?.[c]??0;const a=Math.abs(v);const col=v>0?`rgba(56,189,248,${a.toFixed(2)})`:v<0?`rgba(248,113,113,${a.toFixed(2)})`:';';return`<td style="font-family:var(--mono);font-size:9px;background:${col};text-align:center">${(+v).toFixed(2)}</td>`;}).join('')}</tr>`).join('');
+  document.getElementById('corr-wrap').innerHTML=`<table class="stat-table" style="table-layout:fixed"><thead>${header}</thead><tbody>${rows}</tbody></table>`;
+}
+function loadRolling(){
+  const metric=document.getElementById('ra-metric').value;
+  fetch(`${API}/api/analytics/rolling/dev-004?metric=${metric}`).then(r=>r.json()).then(data=>{
+    renderRollingChart(data,metric);
+  }).catch(()=>{
+    // local simulation
+    const data=PROFILES.slice(0,4).map((p,i)=>({device_id:p.id,rolling:Array.from({length:20},(_,j)=>({ts:new Date(Date.now()-j*3000).toISOString(),v:(20+Math.random()*30).toFixed(2)}))}));
+    renderRollingChartLocal(metric);
+  });
+}
+function renderRollingChart(data,metric){
+  const pts=data.slice(0,20);
+  chRolling.data.labels=pts.map(d=>new Date(d.timestamp||d.ts||Date.now()).toLocaleTimeString());
+  chRolling.data.datasets=[{label:`${metric} (rolling avg)`,data:pts.map(d=>d.rolling_avg||d.v),borderColor:'#38bdf8',tension:.4,pointRadius:2,borderWidth:2,backgroundColor:'rgba(56,189,248,.1)',fill:true}];
+  chRolling.update();
+}
+function renderRollingChartLocal(metric){
+  const labels=Array.from({length:20},(_,i)=>new Date(Date.now()-i*3000).toLocaleTimeString()).reverse();
+  chRolling.data.labels=labels;
+  chRolling.data.datasets=PROFILES.slice(0,3).map((p,i)=>({label:p.id,data:(S.history[p.id]||[]).slice(-20).map(h=>h.readings[metric]||null),borderColor:CC[i],tension:.4,pointRadius:0,borderWidth:1.5,backgroundColor:'transparent'}));
+  chRolling.update();
+}
+
+// ── Matplotlib ─────────────────────────────────────────────
+function loadMplTimeseries(){
+  const metric=document.getElementById('mpl-metric').value;
+  const img=document.getElementById('mpl-img'),loading=document.getElementById('mpl-loading');
+  loading.style.display='block';loading.textContent='Generating Matplotlib PNG via backend…';img.style.display='none';
+  fetch(`${API}/api/charts/timeseries_b64?metric=${metric}`).then(r=>r.json()).then(d=>{
+    img.src=d.image;img.style.display='block';loading.style.display='none';
+  }).catch(()=>{loading.textContent='Backend offline — connect to localhost:5000 to see server-rendered Matplotlib charts';});
+}
+function loadMplDashboard(){
+  const img=document.getElementById('mpl-img'),loading=document.getElementById('mpl-loading');
+  loading.style.display='block';loading.textContent='Rendering Matplotlib dashboard (GridSpec 2×3)…';img.style.display='none';
+  fetch(`${API}/api/charts/dashboard_b64`).then(r=>r.json()).then(d=>{
+    img.src=d.image;img.style.display='block';loading.style.display='none';
+  }).catch(()=>{loading.textContent='Backend offline — start the Flask server to see server-rendered Matplotlib PNG dashboards';});
+}
+
+// ── Plotly ─────────────────────────────────────────────────
+function renderPlotly(figJson){
+  if(typeof figJson==='string')figJson=JSON.parse(figJson);
+  document.getElementById('plotly-chart').innerHTML='';
+  Plotly.newPlot('plotly-chart',figJson.data,{...figJson.layout,height:360,margin:{t:40,b:40,l:60,r:20}});
+}
+function loadPlotlyTS(){
+  const metric=document.getElementById('plotly-metric').value;
+  document.getElementById('plotly-chart').innerHTML=`<div style="color:var(--tx3);font-size:11px;padding:40px;text-align:center">Loading Plotly timeseries from backend…</div>`;
+  fetch(`${API}/api/plotly/timeseries?metric=${metric}`).then(r=>r.json()).then(d=>{renderPlotly(d);}).catch(()=>{
+    // local Plotly with simulated data
+    const traces=PROFILES.slice(0,5).map((p,i)=>{
+      const hist=S.history[p.id]||[];
+      return{x:hist.map(h=>new Date(h.ts)),y:hist.map(h=>h.readings[metric]||null),name:p.id,mode:'lines',line:{color:CC[i],width:1.5}};
+    });
+    Plotly.newPlot('plotly-chart',traces,{title:`${metric} (local)`,paper_bgcolor:'#0d1420',plot_bgcolor:'#111c2e',font:{color:'#94a3b8'},height:360,margin:{t:40,b:40,l:60,r:20}});
+  });
+}
+function loadPlotlyHeatmap(){
+  document.getElementById('plotly-chart').innerHTML=`<div style="color:var(--tx3);font-size:11px;padding:40px;text-align:center">Loading Plotly heatmap…</div>`;
+  fetch(`${API}/api/plotly/heatmap`).then(r=>r.json()).then(d=>{renderPlotly(d);}).catch(()=>{
+    const devIds=PROFILES.map(p=>p.id);
+    const metrics=['temperature','humidity','co2_ppm','pressure'];
+    const z=metrics.map(()=>devIds.map(()=>+(Math.random()*100).toFixed(1)));
+    Plotly.newPlot('plotly-chart',[{type:'heatmap',z,x:devIds,y:metrics,colorscale:'RdYlGn',showscale:true}],{title:'Sensor heatmap (local)',paper_bgcolor:'#0d1420',plot_bgcolor:'#111c2e',font:{color:'#94a3b8'},height:360,margin:{t:40,b:80,l:120,r:20}});
+  });
+}
+function loadPlotlyAlerts(){
+  document.getElementById('plotly-chart').innerHTML=`<div style="color:var(--tx3);font-size:11px;padding:40px;text-align:center">Loading alert histogram…</div>`;
+  fetch(`${API}/api/plotly/alerts_histogram`).then(r=>r.json()).then(d=>{renderPlotly(d);}).catch(()=>{
+    const counts={};S.alerts.forEach(a=>{const k=a.device_id;counts[k]=(counts[k]||0)+1;});
+    Plotly.newPlot('plotly-chart',[{type:'bar',x:Object.keys(counts),y:Object.values(counts),marker:{color:'#f87171'}}],{title:'Alerts by device (local)',paper_bgcolor:'#0d1420',plot_bgcolor:'#111c2e',font:{color:'#94a3b8'},height:360,margin:{t:40,b:60,l:60,r:20}});
+  });
+}
+
+// ── WebSocket (Socket.IO) ─────────────────────────────────
+function initSocketIO(){
+  // Direct Engine.IO polling — bypasses Socket.IO client library issues
+  // The server correctly sends events via polling (proven by manual fetch test)
+  let sid = null;
+  let polling = false;
+  let wsConnected = false;
+
+  function setConnected(v){
+    wsConnected = v;
+    const label = v ? 'connected' : 'connecting';
+    const cls   = v ? 'proto-card active' : 'proto-card';
+    document.getElementById('pv-ws').textContent = label;
+    document.getElementById('pc-ws').className   = cls;
+    document.getElementById('lp-ws').textContent = label;
+    const badge = document.getElementById('ws-conn-badge');
+    if(badge){ badge.textContent=label; badge.className=v?'ph-badge green':'ph-badge red'; }
+    document.getElementById('ws-transport').textContent = v ? 'polling' : '–';
+    if(v) addWsLog(`connected sid=${sid} transport=polling`,'ws');
+  }
+
+  function parsePackets(raw){
+    // Engine.IO packets: length:data format e.g. "5:42[...]"
+    // Also handles plain "42[...]" format
+    const packets = [];
+    let i = 0;
+    while(i < raw.length){
+      // Find length prefix
+      const colon = raw.indexOf(':', i);
+      if(colon === -1){ packets.push(raw.slice(i)); break; }
+      const lenStr = raw.slice(i, colon);
+      const len = parseInt(lenStr);
+      if(isNaN(len)){ packets.push(raw.slice(i)); break; }
+      packets.push(raw.slice(colon+1, colon+1+len));
+      i = colon + 1 + len;
+    }
+    return packets;
+  }
+
+  function processPacket(pkt){
+    if(!pkt) return;
+    // Socket.IO packet types: 40=connect, 42=event, 2=ping
+    if(pkt === '40' || pkt.startsWith('40{')){
+      setConnected(true);
+      return;
+    }
+    if(pkt.startsWith('42')){
+      try{
+        const arr = JSON.parse(pkt.slice(2));
+        const event = arr[0];
+        const data  = arr[1];
+        if(event === 'devices_update' && data && data.devices){
+          S.wsEvents.du++;
+          document.getElementById('we-du').textContent = S.wsEvents.du;
+          document.getElementById('ws-evt-cnt').textContent = Object.values(S.wsEvents).reduce((a,b)=>a+b);
+          document.getElementById('ws-last-evt').textContent = `devices_update @ ${new Date().toLocaleTimeString()}`;
+          data.devices.forEach(dev=>{
+            if(S.devices[dev.device_id]){
+              S.devices[dev.device_id].status  = dev.status;
+              S.devices[dev.device_id].battery = dev.battery_percent;
+            }
+          });
+          addWsLog(`devices_update: ${data.devices.length} devices`,'ws');
+        } else if(event === 'new_alert' && data){
+          S.wsEvents.na++;
+          document.getElementById('we-na').textContent = S.wsEvents.na;
+          S.alerts.unshift({id:Date.now(),device_id:data.device_id,metric:data.metric,
+            value:data.value,severity:data.severity,message:data.message,
+            ts:new Date(),acknowledged:false});
+          if(S.alerts.length>300) S.alerts=S.alerts.slice(0,300);
+          addWsLog(`new_alert: ${data.device_id} ${data.metric}=${data.value} [${data.severity?.toUpperCase()}]`,'err');
+          renderUI();
+        } else if(event === 'mqtt_message' && data){
+          S.wsEvents.mm++;
+          document.getElementById('we-mm').textContent = S.wsEvents.mm;
+          addMqttLogLine(data.topic, data.payload, new Date(), 'pay');
+        } else if(event === 'packet_update' && data){
+          S.wsEvents.pu++;
+          document.getElementById('we-pu').textContent = S.wsEvents.pu;
+        } else if(event === 'command_executed' && data){
+          S.wsEvents.ce++;
+          document.getElementById('we-ce').textContent = S.wsEvents.ce;
+        }
+      } catch(e){ console.warn('parse error', pkt, e); }
+    }
+  }
+
+  async function connect(){
+    try{
+      // Step 1: Handshake
+      const r1 = await fetch(`${WS_URL}/socket.io/?EIO=4&transport=polling`);
+      const t1  = await r1.text();
+      const colon = t1.indexOf('{');
+      sid = JSON.parse(t1.slice(colon)).sid;
+      document.getElementById('ws-sid').textContent = sid;
+
+      // Step 2: Send Socket.IO CONNECT packet
+      await fetch(`${WS_URL}/socket.io/?EIO=4&transport=polling&sid=${sid}`, {
+        method:'POST', headers:{'Content-Type':'text/plain'}, body:'40'
+      });
+
+      setConnected(true);
+      poll();
+    } catch(e){
+      console.error('WS connect failed:', e);
+      document.getElementById('pv-ws').textContent = 'error';
+      setTimeout(connect, 3000);
+    }
+  }
+
+  async function poll(){
+    if(!sid) return;
+    try{
+      const r = await fetch(`${WS_URL}/socket.io/?EIO=4&transport=polling&sid=${sid}`);
+      if(!r.ok){ setTimeout(poll, 1000); return; }
+      const text = await r.text();
+      if(text){
+        const pkts = parsePackets(text);
+        pkts.forEach(processPacket);
+      }
+      // Send heartbeat pong if we got a ping (packet type 3)
+      if(text && text.includes('\x33')){
+        fetch(`${WS_URL}/socket.io/?EIO=4&transport=polling&sid=${sid}`,{
+          method:'POST', headers:{'Content-Type':'text/plain'}, body:'3'
+        }).catch(()=>{});
+      }
+      poll(); // Long-poll loop
+    } catch(e){
+      setConnected(false);
+      sid = null;
+      setTimeout(connect, 2000);
+    }
+  }
+
+  // Also keep socket.io client as fallback for emit
+  try{
+    S.socket = io(WS_URL,{transports:['polling'],upgrade:false,timeout:10000,
+      reconnection:true,reconnectionAttempts:Infinity,reconnectionDelay:2000,path:'/socket.io/'});
+    S.socket.on('connect',()=>{ setConnected(true); });
+  } catch(e){}
+
+  connect();
+}
+
+// ── Fetch from real backend when available ─────────────────
+function fetchAllData(){
+  fetch(`${API}/api/analytics/summary`).then(r=>r.json()).then(d=>{
+    document.getElementById('pv-db').textContent=`${d.readings_last_hour||'–'} rows/hr`;
+  }).catch(()=>{});
+  loadMqttStatus();
+  loadScapyStats();
+}
+
+// ══ BOOT ══════════════════════════════════════════════════
+initCharts();
+renderThresholds();
+initSocketIO();
+simTick();
+setInterval(simTick,3000);
+
+// Sync WebSocket status label with actual socket connection state every 2s
+setInterval(()=>{
+  if(!S.socket) return;
+  const ok = S.socket.connected;
+  const pvws = document.getElementById('pv-ws');
+  const pcws = document.getElementById('pc-ws');
+  const lpws = document.getElementById('lp-ws');
+  const badge = document.getElementById('ws-conn-badge');
+  const transport = document.getElementById('ws-transport');
+  const sid = document.getElementById('ws-sid');
+  if(ok){
+    if(pvws) pvws.textContent = 'connected';
+    if(pcws) pcws.className = 'proto-card active';
+    if(lpws) lpws.textContent = 'connected';
+    if(badge){ badge.textContent='connected'; badge.className='ph-badge green'; }
+    if(transport) transport.textContent = S.socket.io?.engine?.transport?.name || 'polling';
+    if(sid) sid.textContent = S.socket.id || '–';
+  }
+}, 2000);
+setInterval(fetchAllData,15000);
+fetchAllData();
+
+// Initial log messages
+setTimeout(()=>{
+  addWsLog('IoT Manager initialized — WebSocket connecting via nginx:80','sys');
+  addMqttLogLine('[SYS] simulate_sensors.sh','10 device profiles loaded, drift engine active',new Date(),'sys');
+},200);
+</script>
+</body>
+</html>
